@@ -270,6 +270,57 @@
     function loadRoutineChecks(dateKey) {
       return safeParseJSON('routines')[dateKey] || {};
     }
+
+    // ── 메인 화면 ─────────────────────────────────────
+    function renderMain() {
+      const today = getTodayKey();
+      const shift = loadShift(today);
+      const checks = loadRoutineChecks(today);
+
+      // 날짜
+      document.getElementById('today-date').textContent = getTodayLabel();
+
+      // 근무 뱃지
+      const badge = document.getElementById('shift-badge');
+      if (shift) {
+        badge.textContent = SHIFT_LABELS[shift];
+        badge.className = `badge badge-${shift.toLowerCase()}`;
+      } else {
+        badge.textContent = '미설정';
+        badge.className = 'badge badge-none';
+      }
+
+      // 타이밍 힌트
+      document.getElementById('timing-hint').textContent = getTimingHint(shift);
+
+      // 루틴 체크리스트
+      const listEl = document.getElementById('routine-list');
+      listEl.innerHTML = '';
+      ROUTINES.forEach(({ name, icon }) => {
+        const isChecked = checks[name] || false;
+        const item = document.createElement('label');
+        item.className = 'routine-item' + (isChecked ? ' done' : '');
+        item.innerHTML = `
+          <input type="checkbox" ${isChecked ? 'checked' : ''}
+                 onchange="toggleRoutine('${name}', this.checked)">
+          <span class="routine-icon">${icon}</span>
+          <span class="routine-name">${name}</span>
+        `;
+        listEl.appendChild(item);
+      });
+
+      // 완료 카운터
+      const doneCount = Object.values(checks).filter(Boolean).length;
+      document.getElementById('progress').textContent = `${doneCount} / ${ROUTINES.length} 완료`;
+    }
+
+    function toggleRoutine(name, checked) {
+      saveRoutineCheck(getTodayKey(), name, checked);
+      renderMain();
+    }
+
+    // ── 앱 시작 ───────────────────────────────────────
+    renderMain();
   </script>
 
 </body>
