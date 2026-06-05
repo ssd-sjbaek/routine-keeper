@@ -319,6 +319,67 @@
       renderMain();
     }
 
+    // ── 화면 전환 ─────────────────────────────────────
+    function showScreen(name) {
+      document.getElementById('screen-main').style.display     = name === 'main'     ? '' : 'none';
+      document.getElementById('screen-schedule').style.display = name === 'schedule' ? '' : 'none';
+      if (name === 'schedule') renderCalendar();
+      if (name === 'main')     renderMain();
+    }
+
+    // ── 달력 화면 ─────────────────────────────────────
+    function renderCalendar() {
+      const d = new Date();
+      const year  = d.getFullYear();
+      const month = d.getMonth(); // 0-indexed
+
+      document.getElementById('schedule-month').textContent = getCurrentMonthLabel();
+
+      const firstWeekday = new Date(year, month, 1).getDay(); // 0=일
+      const daysInMonth  = new Date(year, month + 1, 0).getDate();
+
+      const cal = document.getElementById('calendar');
+      cal.innerHTML = '';
+
+      // 요일 헤더
+      ['일', '월', '화', '수', '목', '금', '토'].forEach(w => {
+        const h = document.createElement('div');
+        h.className = 'cal-header';
+        h.textContent = w;
+        cal.appendChild(h);
+      });
+
+      // 첫 주 빈 칸
+      for (let i = 0; i < firstWeekday; i++) {
+        cal.appendChild(document.createElement('div'));
+      }
+
+      // 날짜 칸
+      for (let day = 1; day <= daysInMonth; day++) {
+        const m   = String(month + 1).padStart(2, '0');
+        const dd  = String(day).padStart(2, '0');
+        const key = `${year}-${m}-${dd}`;
+        const shift = loadShift(key);
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day' + (shift ? ` shift-${shift.toLowerCase()}` : '');
+        cell.innerHTML = `
+          <span class="day-num">${day}</span>
+          ${shift ? `<span class="day-shift">${shift}</span>` : ''}
+        `;
+        cell.onclick = () => cycleShift(key);
+        cal.appendChild(cell);
+      }
+    }
+
+    function cycleShift(dateKey) {
+      const current = loadShift(dateKey);
+      const idx  = SHIFT_CYCLE.indexOf(current);
+      const next = SHIFT_CYCLE[(idx + 1) % SHIFT_CYCLE.length];
+      saveShift(dateKey, next);
+      renderCalendar();
+    }
+
     // ── 앱 시작 ───────────────────────────────────────
     renderMain();
   </script>
