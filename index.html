@@ -191,7 +191,78 @@
   </div>
 
   <script>
-    /* Task 4~6에서 채운다 */
+    // ── 상수 ──────────────────────────────────────────
+    const ROUTINES = [
+      { name: '환기',           icon: '🪟' },
+      { name: '향 피우기',      icon: '🕯️' },
+      { name: '이불 정리',      icon: '🛏️' },
+      { name: '청소기 돌리기',  icon: '🧹' },
+      { name: '콩이 화장실 정리', icon: '🐱' },
+    ];
+
+    const SHIFT_LABELS = {
+      'A':  'A조  09:00–18:00',
+      'C':  'C조  14:00–22:00',
+      'DO': 'Day Off',
+    };
+
+    const SHIFT_CYCLE = ['A', 'C', 'DO', null]; // 클릭할 때 순환
+
+    // ── 날짜 유틸 ─────────────────────────────────────
+    function getTodayKey() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    function getTodayLabel() {
+      const d = new Date();
+      const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+      return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${weekdays[d.getDay()]}요일`;
+    }
+
+    function getCurrentMonthLabel() {
+      const d = new Date();
+      return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+    }
+
+    // ── 타이밍 힌트 ───────────────────────────────────
+    function getTimingHint(shift) {
+      if (shift === 'A')  return '✨ 저녁에 하기 좋아요 (퇴근 후 18:00~)';
+      if (shift === 'C')  return '✨ 오전에 하기 좋아요 (출근 전 ~14:00)';
+      if (shift === 'DO') return '✨ 오늘은 자유롭게 :)';
+      return '📅 오늘 스케줄을 먼저 설정해줘요';
+    }
+
+    // ── localStorage 함수 ─────────────────────────────
+    function saveShift(dateKey, shift) {
+      const data = JSON.parse(localStorage.getItem('schedule') || '{}');
+      if (shift === null) {
+        delete data[dateKey];
+      } else {
+        data[dateKey] = shift;
+      }
+      localStorage.setItem('schedule', JSON.stringify(data));
+    }
+
+    function loadShift(dateKey) {
+      const data = JSON.parse(localStorage.getItem('schedule') || '{}');
+      return data[dateKey] || null;
+    }
+
+    function saveRoutineCheck(dateKey, routineName, checked) {
+      const data = JSON.parse(localStorage.getItem('routines') || '{}');
+      if (!data[dateKey]) data[dateKey] = {};
+      data[dateKey][routineName] = checked;
+      localStorage.setItem('routines', JSON.stringify(data));
+    }
+
+    function loadRoutineChecks(dateKey) {
+      const data = JSON.parse(localStorage.getItem('routines') || '{}');
+      return data[dateKey] || {};
+    }
   </script>
 
 </body>
