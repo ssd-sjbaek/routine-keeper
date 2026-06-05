@@ -237,8 +237,17 @@
     }
 
     // ── localStorage 함수 ─────────────────────────────
+    function safeParseJSON(key) {
+      try {
+        return JSON.parse(localStorage.getItem(key) || '{}');
+      } catch (e) {
+        localStorage.removeItem(key);
+        return {};
+      }
+    }
+
     function saveShift(dateKey, shift) {
-      const data = JSON.parse(localStorage.getItem('schedule') || '{}');
+      const data = safeParseJSON('schedule');
       if (shift === null) {
         delete data[dateKey];
       } else {
@@ -248,20 +257,18 @@
     }
 
     function loadShift(dateKey) {
-      const data = JSON.parse(localStorage.getItem('schedule') || '{}');
-      return data[dateKey] || null;
+      return safeParseJSON('schedule')[dateKey] || null;
     }
 
     function saveRoutineCheck(dateKey, routineName, checked) {
-      const data = JSON.parse(localStorage.getItem('routines') || '{}');
+      const data = safeParseJSON('routines');
       if (!data[dateKey]) data[dateKey] = {};
       data[dateKey][routineName] = checked;
       localStorage.setItem('routines', JSON.stringify(data));
     }
 
     function loadRoutineChecks(dateKey) {
-      const data = JSON.parse(localStorage.getItem('routines') || '{}');
-      return data[dateKey] || {};
+      return safeParseJSON('routines')[dateKey] || {};
     }
   </script>
 
