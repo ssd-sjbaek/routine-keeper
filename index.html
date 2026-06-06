@@ -490,6 +490,18 @@
       }
     }
 
+    async function loadTodoList() {
+      const doc = await db.collection('users').doc(currentUser.uid)
+                           .collection('todos').doc('list').get();
+      return doc.exists ? (doc.data().items || []) : [];
+    }
+
+    async function saveTodoList(items) {
+      await db.collection('users').doc(currentUser.uid)
+              .collection('todos').doc('list')
+              .set({ items });
+    }
+
     // ── localStorage → Firestore 마이그레이션 ─────────
     async function migrateFromLocalStorage() {
       const scheduleData = safeParseJSON('schedule');
@@ -577,6 +589,45 @@
       await renderMain();
       const newInput = document.getElementById('new-routine-input');
       if (newInput) newInput.focus();
+    }
+
+    function showTodoInput() {
+      todoAddMode = true;
+      renderMain();
+    }
+
+    async function addTodo() {
+      const input = document.getElementById('new-todo-input');
+      const text = input.value.trim();
+      if (!text) return;
+      const items = await loadTodoList();
+      items.push({
+        id: crypto.randomUUID(),
+        text,
+        done: false,
+        doneDate: null,
+      });
+      await saveTodoList(items);
+      todoAddMode = false;
+      await renderMain();
+    }
+
+    async function toggleTodo(id, checked) {
+      const today = getTodayKey();
+      const items = await loadTodoList();
+      const item = items.find(i => i.id === id);
+      if (item) {
+        item.done = checked;
+        item.doneDate = checked ? today : null;
+      }
+      await saveTodoList(items);
+      await renderMain();
+    }
+
+    async function deleteTodo(id) {
+      const items = await loadTodoList();
+      await saveTodoList(items.filter(i => i.id !== id));
+      await renderMain();
     }
 
     // ── 화면 전환 ─────────────────────────────────────
