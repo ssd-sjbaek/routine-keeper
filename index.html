@@ -210,6 +210,90 @@
     .shift-c  .day-shift { color: #bf360c; }
     .shift-do { background: #e8e8e8; }
     .shift-do .day-shift { color: #555; }
+    /* 섹션 헤더 (루틴 + 할 일 공통) */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #88a89c;
+    }
+    .section-btn {
+      background: none;
+      border: none;
+      color: #2e7d5e;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+    .routine-delete, .todo-delete {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .routine-delete:hover, .todo-delete:hover { color: #e57373; }
+    .add-input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .add-input {
+      flex: 1;
+      border: 1px solid #d4ede4;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+      font-family: inherit;
+    }
+    .add-input:focus { border-color: #2e7d5e; }
+    .add-btn {
+      background: #2e7d5e;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .add-btn:hover { background: #245f49; }
+    /* 할 일 섹션 */
+    .todo-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #f0f0f0;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f9f9f9;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+    .todo-item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #2e7d5e;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .todo-text { flex: 1; }
   </style>
 </head>
 <body>
@@ -246,8 +330,8 @@
         <span id="shift-badge" class="badge badge-none">미설정</span>
       </div>
       <div id="timing-hint" class="hint">오늘 스케줄을 먼저 설정해줘요</div>
-      <div id="routine-list" class="routine-list"></div>
-      <div id="progress" class="progress">0 / 5 완료</div>
+      <div id="routine-section" class="routine-list"></div>
+      <div id="todo-section" class="todo-section"></div>
     </div>
   </div>
 
@@ -423,8 +507,8 @@
 
       document.getElementById('timing-hint').textContent = getTimingHint(shift);
 
-      const listEl = document.getElementById('routine-list');
-      listEl.innerHTML = '';
+      const routineSection = document.getElementById('routine-section');
+      routineSection.innerHTML = '';
       ROUTINES.forEach(({ name, icon }) => {
         const isChecked = checks[name] || false;
         const item = document.createElement('label');
@@ -435,11 +519,8 @@
           <span class="routine-icon">${icon}</span>
           <span class="routine-name">${name}</span>
         `;
-        listEl.appendChild(item);
+        routineSection.appendChild(item);
       });
-
-      const doneCount = Object.values(checks).filter(Boolean).length;
-      document.getElementById('progress').textContent = `${doneCount} / ${ROUTINES.length} 완료`;
     }
 
     async function toggleRoutine(name, checked) {
