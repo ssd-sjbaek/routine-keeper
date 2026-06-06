@@ -381,13 +381,17 @@
     }
 
     // ── 상수 ──────────────────────────────────────────
-    const ROUTINES = [
-      { name: '환기',             icon: '🪟' },
-      { name: '향 피우기',        icon: '🕯️' },
-      { name: '이불 정리',        icon: '🛏️' },
-      { name: '청소기 돌리기',    icon: '🧹' },
-      { name: '콩이 화장실 정리', icon: '🐱' },
+    const DEFAULT_ROUTINES = [
+      "🪟 환기",
+      "🕯️ 향 피우기",
+      "🛏️ 이불 정리",
+      "🧹 청소기 돌리기",
+      "🐱 콩이 화장실 정리",
     ];
+
+    let currentRoutines = [];
+    let routineEditMode = false;
+    let todoAddMode = false;
 
     const SHIFT_LABELS = {
       'A':  'A조  09:00–18:00',
@@ -464,6 +468,28 @@
       return doc.exists ? doc.data() : {};
     }
 
+    async function loadRoutineList() {
+      const doc = await db.collection('users').doc(currentUser.uid)
+                           .collection('settings').doc('app').get();
+      return doc.exists ? doc.data().routines : null;
+    }
+
+    async function saveRoutineList(routines) {
+      await db.collection('users').doc(currentUser.uid)
+              .collection('settings').doc('app')
+              .set({ routines }, { merge: true });
+    }
+
+    async function initRoutineSettings() {
+      const existing = await loadRoutineList();
+      if (existing !== null) {
+        currentRoutines = existing;
+      } else {
+        currentRoutines = [...DEFAULT_ROUTINES];
+        await saveRoutineList(currentRoutines);
+      }
+    }
+
     // ── localStorage → Firestore 마이그레이션 ─────────
     async function migrateFromLocalStorage() {
       const scheduleData = safeParseJSON('schedule');
@@ -509,15 +535,14 @@
 
       const routineSection = document.getElementById('routine-section');
       routineSection.innerHTML = '';
-      ROUTINES.forEach(({ name, icon }) => {
-        const isChecked = checks[name] || false;
+      currentRoutines.forEach((routineStr) => {
+        const isChecked = checks[routineStr] || false;
         const item = document.createElement('label');
         item.className = 'routine-item' + (isChecked ? ' done' : '');
         item.innerHTML = `
           <input type="checkbox" ${isChecked ? 'checked' : ''}
-                 onchange="toggleRoutine('${name}', this.checked)">
-          <span class="routine-icon">${icon}</span>
-          <span class="routine-name">${name}</span>
+                 onchange="toggleRoutine('${routineStr}', this.checked)">
+          <span class="routine-name">${routineStr}</span>
         `;
         routineSection.appendChild(item);
       });
@@ -602,8 +627,11 @@
       currentUser = user;
       if (user) {
         await migrateFromLocalStorage();
+        await initRoutineSettings();
         showScreen('main');
       } else {
+        routineEditMode = false;
+        todoAddMode = false;
         showScreen('login');
       }
     });
