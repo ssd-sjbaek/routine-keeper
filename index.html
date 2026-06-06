@@ -528,9 +528,12 @@
 
     // ── 메인 화면 ─────────────────────────────────────
     async function renderMain() {
-      const today  = getTodayKey();
-      const shift  = await loadShift(today);
-      const checks = await loadRoutineChecks(today);
+      const today = getTodayKey();
+      const [shift, checks, allTodos] = await Promise.all([
+        loadShift(today),
+        loadRoutineChecks(today),
+        loadTodoList(),
+      ]);
 
       document.getElementById('today-date').textContent = getTodayLabel();
 
@@ -542,22 +545,104 @@
         badge.textContent = '미설정';
         badge.className = 'badge badge-none';
       }
-
       document.getElementById('timing-hint').textContent = getTimingHint(shift);
 
+      // ── 루틴 섹션 ──
       const routineSection = document.getElementById('routine-section');
       routineSection.innerHTML = '';
-      currentRoutines.forEach((routineStr) => {
-        const isChecked = checks[routineStr] || false;
-        const item = document.createElement('label');
-        item.className = 'routine-item' + (isChecked ? ' done' : '');
-        item.innerHTML = `
-          <input type="checkbox" ${isChecked ? 'checked' : ''}
-                 onchange="toggleRoutine('${routineStr}', this.checked)">
-          <span class="routine-name">${routineStr}</span>
-        `;
-        routineSection.appendChild(item);
+
+      const routineHeader = document.createElement('div');
+      routineHeader.className = 'section-header';
+      routineHeader.innerHTML = `
+        <span class="section-title">✅ 매일 루틴</span>
+        <button class="section-btn" onclick="toggleRoutineEdit()">
+          ${routineEditMode ? '완료' : '편집'}
+        </button>
+      `;
+      routineSection.appendChild(routineHeader);
+
+      currentRoutines.forEach((name, index) => {
+        if (routineEditMode) {
+          const item = document.createElement('div');
+          item.className = 'routine-item';
+          item.innerHTML = `
+            <span class="routine-name">${name}</span>
+            <button class="routine-delete" onclick="deleteRoutine(${index})">✕</button>
+          `;
+          routineSection.appendChild(item);
+        } else {
+          const isChecked = checks[name] || false;
+          const item = document.createElement('label');
+          item.className = 'routine-item' + (isChecked ? ' done' : '');
+          item.innerHTML = `
+            <input type="checkbox" ${isChecked ? 'checked' : ''}
+                   onchange="toggleRoutine(${JSON.stringify(name)}, this.checked)">
+            <span class="routine-name">${name}</span>
+          `;
+          routineSection.appendChild(item);
+        }
       });
+
+      if (routineEditMode) {
+        const addRow = document.createElement('div');
+        addRow.className = 'add-input-row';
+        addRow.innerHTML = `
+          <input class="add-input" id="new-routine-input" placeholder="새 루틴 입력..."
+                 onkeydown="if(event.key==='Enter')addRoutine()">
+          <button class="add-btn" onclick="addRoutine()">추가</button>
+        `;
+        routineSection.appendChild(addRow);
+      }
+
+      const progressEl = document.createElement('div');
+      progressEl.className = 'progress';
+      const routineDoneCount = currentRoutines.filter(name => checks[name]).length;
+      progressEl.textContent = `${routineDoneCount} / ${currentRoutines.length} 완료`;
+      routineSection.appendChild(progressEl);
+
+      // ── 할 일 섹션 ──
+      const visibleTodos = allTodos.filter(t => !t.done || t.doneDate === today);
+      if (visibleTodos.length !== allTodos.length) {
+        await saveTodoList(visibleTodos);
+      }
+
+      const todoSection = document.getElementById('todo-section');
+      todoSection.innerHTML = '';
+
+      const todoHeader = document.createElement('div');
+      todoHeader.className = 'section-header';
+      todoHeader.innerHTML = `
+        <span class="section-title">📋 오늘의 할 일</span>
+        <button class="section-btn" onclick="showTodoInput()">+</button>
+      `;
+      todoSection.appendChild(todoHeader);
+
+      visibleTodos.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'todo-item' + (item.done ? ' done' : '');
+        el.innerHTML = `
+          <input type="checkbox" ${item.done ? 'checked' : ''}
+                 onchange="toggleTodo(${JSON.stringify(item.id)}, this.checked)">
+          <span class="todo-text">${item.text}</span>
+          <button class="todo-delete" onclick="deleteTodo(${JSON.stringify(item.id)})">✕</button>
+        `;
+        todoSection.appendChild(el);
+      });
+
+      if (todoAddMode) {
+        const addRow = document.createElement('div');
+        addRow.className = 'add-input-row';
+        addRow.innerHTML = `
+          <input class="add-input" id="new-todo-input" placeholder="할 일 입력..."
+                 onkeydown="if(event.key==='Enter')addTodo()">
+          <button class="add-btn" onclick="addTodo()">추가</button>
+        `;
+        todoSection.appendChild(addRow);
+        setTimeout(() => {
+          const el = document.getElementById('new-todo-input');
+          if (el) el.focus();
+        }, 50);
+      }
     }
 
     async function toggleRoutine(name, checked) {
