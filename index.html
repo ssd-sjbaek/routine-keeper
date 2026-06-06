@@ -576,7 +576,7 @@
           item.className = 'routine-item' + (isChecked ? ' done' : '');
           item.innerHTML = `
             <input type="checkbox" ${isChecked ? 'checked' : ''}
-                   onchange="toggleRoutine(${JSON.stringify(name)}, this.checked)">
+                   onchange='toggleRoutine(${JSON.stringify(name)}, this.checked)'>
             <span class="routine-name">${name}</span>
           `;
           routineSection.appendChild(item);
@@ -622,9 +622,9 @@
         el.className = 'todo-item' + (item.done ? ' done' : '');
         el.innerHTML = `
           <input type="checkbox" ${item.done ? 'checked' : ''}
-                 onchange="toggleTodo(${JSON.stringify(item.id)}, this.checked)">
+                 onchange='toggleTodo(${JSON.stringify(item.id)}, this.checked)'>
           <span class="todo-text">${item.text}</span>
-          <button class="todo-delete" onclick="deleteTodo(${JSON.stringify(item.id)})">✕</button>
+          <button class="todo-delete" onclick='deleteTodo(${JSON.stringify(item.id)})'>✕</button>
         `;
         todoSection.appendChild(el);
       });
