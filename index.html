@@ -553,6 +553,32 @@
       await renderMain();
     }
 
+    async function toggleRoutineEdit() {
+      if (routineEditMode) {
+        routineEditMode = false;
+        await saveRoutineList(currentRoutines);
+      } else {
+        routineEditMode = true;
+      }
+      await renderMain();
+    }
+
+    async function deleteRoutine(index) {
+      currentRoutines.splice(index, 1);
+      await renderMain();
+    }
+
+    async function addRoutine() {
+      const input = document.getElementById('new-routine-input');
+      const name = input.value.trim();
+      if (!name) return;
+      currentRoutines.push(name);
+      input.value = '';
+      await renderMain();
+      const newInput = document.getElementById('new-routine-input');
+      if (newInput) newInput.focus();
+    }
+
     // ── 화면 전환 ─────────────────────────────────────
     function showScreen(name) {
       document.getElementById('screen-login').style.display    = name === 'login'    ? '' : 'none';
