@@ -15,6 +15,52 @@
       padding: 20px;
     }
 
+    /* 로그인 화면 */
+    #screen-login {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 40px);
+    }
+    .login-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      max-width: 360px;
+      width: 100%;
+      text-align: center;
+    }
+    .login-card h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #2d3a35;
+      margin-bottom: 8px;
+    }
+    .login-card p {
+      font-size: 14px;
+      color: #88a89c;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+    .btn-google {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 20px;
+      background: white;
+      border: 1px solid #d4ede4;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #2d3a35;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-google:hover { background: #f0faf5; }
+
     /* 헤더 */
     .header {
       display: flex;
@@ -26,6 +72,11 @@
       margin-left: auto;
       margin-right: auto;
       margin-bottom: 16px;
+    }
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
     .header button {
       background: none;
@@ -163,11 +214,31 @@
 </head>
 <body>
 
+  <!-- 로그인 화면 -->
+  <div id="screen-login" style="display:none">
+    <div class="login-card">
+      <h1>루틴 지킴이</h1>
+      <p>로그인하면 폰·컴퓨터에서<br>같은 데이터를 볼 수 있어요</p>
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 18 18">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+        </svg>
+        Google로 로그인
+      </button>
+    </div>
+  </div>
+
   <!-- 메인 화면 -->
-  <div id="screen-main">
+  <div id="screen-main" style="display:none">
     <div class="header">
       <span id="today-date">날짜 로딩 중...</span>
-      <button onclick="showScreen('schedule')">📅 스케줄 설정</button>
+      <div class="header-actions">
+        <button onclick="showScreen('schedule')">📅 스케줄 설정</button>
+        <button onclick="handleSignOut()">로그아웃</button>
+      </div>
     </div>
     <div class="card">
       <div class="shift-row">
@@ -180,7 +251,7 @@
     </div>
   </div>
 
-  <!-- 스케줄 설정 화면 (기본 숨김) -->
+  <!-- 스케줄 설정 화면 -->
   <div id="screen-schedule" style="display:none">
     <div class="header">
       <button onclick="showScreen('main')">← 뒤로</button>
@@ -190,13 +261,47 @@
     <div id="calendar" class="calendar"></div>
   </div>
 
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
   <script>
+    // ── Firebase 초기화 ────────────────────────────────
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDjYuZqK51RVaNGwsHHz7y-0ag7kGq4U0",
+      authDomain: "routine-keeper-7c152.firebaseapp.com",
+      projectId: "routine-keeper-7c152",
+      storageBucket: "routine-keeper-7c152.firebasestorage.app",
+      messagingSenderId: "589181570115",
+      appId: "1:589181570115:web:6ec15a8f5ecd948ad618f6",
+      measurementId: "G-73SYTBTKM0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+
+    db.enablePersistence().catch(err => {
+      console.warn('오프라인 퍼시스턴스 사용 불가:', err.code);
+    });
+
+    let currentUser = null;
+
+    function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(err => console.error('로그인 실패:', err));
+    }
+
+    function handleSignOut() {
+      auth.signOut();
+    }
+
     // ── 상수 ──────────────────────────────────────────
     const ROUTINES = [
-      { name: '환기',           icon: '🪟' },
-      { name: '향 피우기',      icon: '🕯️' },
-      { name: '이불 정리',      icon: '🛏️' },
-      { name: '청소기 돌리기',  icon: '🧹' },
+      { name: '환기',             icon: '🪟' },
+      { name: '향 피우기',        icon: '🕯️' },
+      { name: '이불 정리',        icon: '🛏️' },
+      { name: '청소기 돌리기',    icon: '🧹' },
       { name: '콩이 화장실 정리', icon: '🐱' },
     ];
 
@@ -206,7 +311,7 @@
       'DO': 'Day Off',
     };
 
-    const SHIFT_CYCLE = ['A', 'C', 'DO', null]; // 클릭할 때 순환
+    const SHIFT_CYCLE = ['A', 'C', 'DO', null];
 
     // ── 날짜 유틸 ─────────────────────────────────────
     function getTodayKey() {
@@ -236,7 +341,7 @@
       return '📅 오늘 스케줄을 먼저 설정해줘요';
     }
 
-    // ── localStorage 함수 ─────────────────────────────
+    // ── localStorage 유틸 (마이그레이션용) ───────────
     function safeParseJSON(key) {
       try {
         return JSON.parse(localStorage.getItem(key) || '{}');
@@ -246,41 +351,67 @@
       }
     }
 
-    function saveShift(dateKey, shift) {
-      const data = safeParseJSON('schedule');
+    // ── Firestore 데이터 함수 ─────────────────────────
+    async function saveShift(dateKey, shift) {
+      const ref = db.collection('users').doc(currentUser.uid)
+                    .collection('schedule').doc(dateKey);
       if (shift === null) {
-        delete data[dateKey];
+        await ref.delete();
       } else {
-        data[dateKey] = shift;
+        await ref.set({ shift });
       }
-      localStorage.setItem('schedule', JSON.stringify(data));
     }
 
-    function loadShift(dateKey) {
-      return safeParseJSON('schedule')[dateKey] || null;
+    async function loadShift(dateKey) {
+      const doc = await db.collection('users').doc(currentUser.uid)
+                           .collection('schedule').doc(dateKey).get();
+      return doc.exists ? doc.data().shift : null;
     }
 
-    function saveRoutineCheck(dateKey, routineName, checked) {
-      const data = safeParseJSON('routines');
-      if (!data[dateKey]) data[dateKey] = {};
-      data[dateKey][routineName] = checked;
-      localStorage.setItem('routines', JSON.stringify(data));
+    async function saveRoutineCheck(dateKey, routineName, checked) {
+      await db.collection('users').doc(currentUser.uid)
+              .collection('routines').doc(dateKey)
+              .set({ [routineName]: checked }, { merge: true });
     }
 
-    function loadRoutineChecks(dateKey) {
-      return safeParseJSON('routines')[dateKey] || {};
+    async function loadRoutineChecks(dateKey) {
+      const doc = await db.collection('users').doc(currentUser.uid)
+                           .collection('routines').doc(dateKey).get();
+      return doc.exists ? doc.data() : {};
+    }
+
+    // ── localStorage → Firestore 마이그레이션 ─────────
+    async function migrateFromLocalStorage() {
+      const scheduleData = safeParseJSON('schedule');
+      const routinesData = safeParseJSON('routines');
+
+      const hasSched    = Object.keys(scheduleData).length > 0;
+      const hasRoutines = Object.keys(routinesData).length > 0;
+      if (!hasSched && !hasRoutines) return;
+
+      const batch   = db.batch();
+      const userRef = db.collection('users').doc(currentUser.uid);
+
+      for (const [dateKey, shift] of Object.entries(scheduleData)) {
+        batch.set(userRef.collection('schedule').doc(dateKey), { shift });
+      }
+      for (const [dateKey, checks] of Object.entries(routinesData)) {
+        batch.set(userRef.collection('routines').doc(dateKey), checks);
+      }
+
+      await batch.commit();
+      localStorage.removeItem('schedule');
+      localStorage.removeItem('routines');
     }
 
     // ── 메인 화면 ─────────────────────────────────────
-    function renderMain() {
-      const today = getTodayKey();
-      const shift = loadShift(today);
-      const checks = loadRoutineChecks(today);
+    async function renderMain() {
+      const today  = getTodayKey();
+      const shift  = await loadShift(today);
+      const checks = await loadRoutineChecks(today);
 
-      // 날짜
       document.getElementById('today-date').textContent = getTodayLabel();
 
-      // 근무 뱃지
       const badge = document.getElementById('shift-badge');
       if (shift) {
         badge.textContent = SHIFT_LABELS[shift];
@@ -290,10 +421,8 @@
         badge.className = 'badge badge-none';
       }
 
-      // 타이밍 힌트
       document.getElementById('timing-hint').textContent = getTimingHint(shift);
 
-      // 루틴 체크리스트
       const listEl = document.getElementById('routine-list');
       listEl.innerHTML = '';
       ROUTINES.forEach(({ name, icon }) => {
@@ -309,18 +438,18 @@
         listEl.appendChild(item);
       });
 
-      // 완료 카운터
       const doneCount = Object.values(checks).filter(Boolean).length;
       document.getElementById('progress').textContent = `${doneCount} / ${ROUTINES.length} 완료`;
     }
 
-    function toggleRoutine(name, checked) {
-      saveRoutineCheck(getTodayKey(), name, checked);
-      renderMain();
+    async function toggleRoutine(name, checked) {
+      await saveRoutineCheck(getTodayKey(), name, checked);
+      await renderMain();
     }
 
     // ── 화면 전환 ─────────────────────────────────────
     function showScreen(name) {
+      document.getElementById('screen-login').style.display    = name === 'login'    ? '' : 'none';
       document.getElementById('screen-main').style.display     = name === 'main'     ? '' : 'none';
       document.getElementById('screen-schedule').style.display = name === 'schedule' ? '' : 'none';
       if (name === 'schedule') renderCalendar();
@@ -328,20 +457,29 @@
     }
 
     // ── 달력 화면 ─────────────────────────────────────
-    function renderCalendar() {
-      const d = new Date();
+    async function renderCalendar() {
+      const d     = new Date();
       const year  = d.getFullYear();
-      const month = d.getMonth(); // 0-indexed
+      const month = d.getMonth();
 
       document.getElementById('schedule-month').textContent = getCurrentMonthLabel();
 
-      const firstWeekday = new Date(year, month, 1).getDay(); // 0=일
+      const firstWeekday = new Date(year, month, 1).getDay();
       const daysInMonth  = new Date(year, month + 1, 0).getDate();
+
+      const dateKeys = [];
+      for (let day = 1; day <= daysInMonth; day++) {
+        const m  = String(month + 1).padStart(2, '0');
+        const dd = String(day).padStart(2, '0');
+        dateKeys.push(`${year}-${m}-${dd}`);
+      }
+      const shiftValues = await Promise.all(dateKeys.map(k => loadShift(k)));
+      const shiftMap = {};
+      dateKeys.forEach((k, i) => { shiftMap[k] = shiftValues[i]; });
 
       const cal = document.getElementById('calendar');
       cal.innerHTML = '';
 
-      // 요일 헤더
       ['일', '월', '화', '수', '목', '금', '토'].forEach(w => {
         const h = document.createElement('div');
         h.className = 'cal-header';
@@ -349,17 +487,15 @@
         cal.appendChild(h);
       });
 
-      // 첫 주 빈 칸
       for (let i = 0; i < firstWeekday; i++) {
         cal.appendChild(document.createElement('div'));
       }
 
-      // 날짜 칸
       for (let day = 1; day <= daysInMonth; day++) {
         const m   = String(month + 1).padStart(2, '0');
         const dd  = String(day).padStart(2, '0');
         const key = `${year}-${m}-${dd}`;
-        const shift = loadShift(key);
+        const shift = shiftMap[key];
 
         const cell = document.createElement('div');
         cell.className = 'cal-day' + (shift ? ` shift-${shift.toLowerCase()}` : '');
@@ -372,16 +508,24 @@
       }
     }
 
-    function cycleShift(dateKey) {
-      const current = loadShift(dateKey);
+    async function cycleShift(dateKey) {
+      const current = await loadShift(dateKey);
       const idx  = SHIFT_CYCLE.indexOf(current);
       const next = SHIFT_CYCLE[(idx + 1) % SHIFT_CYCLE.length];
-      saveShift(dateKey, next);
-      renderCalendar();
+      await saveShift(dateKey, next);
+      await renderCalendar();
     }
 
     // ── 앱 시작 ───────────────────────────────────────
-    renderMain();
+    auth.onAuthStateChanged(async (user) => {
+      currentUser = user;
+      if (user) {
+        await migrateFromLocalStorage();
+        showScreen('main');
+      } else {
+        showScreen('login');
+      }
+    });
   </script>
 
 </body>
