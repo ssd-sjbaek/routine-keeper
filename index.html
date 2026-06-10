@@ -640,6 +640,99 @@
               .set({ items });
     }
 
+    async function loadMonthRoutineChecks(year, month) {
+      const m = String(month).padStart(2, '0');
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const dateKeys = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        dateKeys.push(`${year}-${m}-${String(d).padStart(2, '0')}`);
+      }
+      const docs = await Promise.all(
+        dateKeys.map(k =>
+          db.collection('users').doc(currentUser.uid)
+            .collection('routines').doc(k).get()
+        )
+      );
+      const result = {};
+      dateKeys.forEach((k, i) => {
+        result[k] = docs[i].exists ? docs[i].data() : {};
+      });
+      return result;
+    }
+
+    async function loadAllRoutineChecks() {
+      const snap = await db.collection('users').doc(currentUser.uid)
+                            .collection('routines').get();
+      const result = {};
+      snap.forEach(doc => { result[doc.id] = doc.data(); });
+      return result;
+    }
+
+    function calcStreakInfo(allChecks, routines, year, month) {
+      if (routines.length === 0) return { current: 0, monthBest: 0, allTimeBest: 0 };
+      const today = getTodayKey();
+
+      const isAllDone = (key) => {
+        const checks = allChecks[key] || {};
+        return routines.every(r => checks[r]);
+      };
+
+      // 오늘부터 역순으로 연속 달성일 계산
+      let current = 0;
+      let key = today;
+      while (isAllDone(key)) {
+        current++;
+        key = subtractOneDay(key);
+        if (key < '2020-01-01') break; // 무한루프 방지
+      }
+
+      // 날짜 배열에서 가장 긴 연속 구간 계산
+      const longestInKeys = (keys) => {
+        let best = 0, cur = 0, prev = null;
+        for (const k of keys) {
+          if (isAllDone(k)) {
+            cur = (prev && addOneDay(prev) === k) ? cur + 1 : 1;
+            best = Math.max(best, cur);
+          } else {
+            cur = 0;
+          }
+          prev = k;
+        }
+        return best;
+      };
+
+      const allDates = Object.keys(allChecks).filter(k => k <= today).sort();
+      const allTimeBest = longestInKeys(allDates);
+
+      const m = String(month).padStart(2, '0');
+      const monthDates = allDates.filter(k => k.startsWith(`${year}-${m}`));
+      const monthBest = longestInKeys(monthDates);
+
+      return { current, monthBest, allTimeBest };
+    }
+
+    function calcMonthlyRates(monthChecks, routines, year, month) {
+      if (routines.length === 0) return [];
+      const today = getTodayKey();
+      const m = String(month).padStart(2, '0');
+      const daysInMonth = new Date(year, month, 0).getDate();
+      const doneCounts = Object.fromEntries(routines.map(r => [r, 0]));
+      let totalDays = 0;
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const k = `${year}-${m}-${String(d).padStart(2, '0')}`;
+        if (k > today) break;
+        totalDays++;
+        const checks = monthChecks[k] || {};
+        routines.forEach(r => { if (checks[r]) doneCounts[r]++; });
+      }
+
+      return routines.map(name => ({
+        name,
+        rate: totalDays > 0 ? Math.round(doneCounts[name] / totalDays * 100) : 0,
+      }));
+    }
+
     // ── localStorage → Firestore 마이그레이션 ─────────
     async function migrateFromLocalStorage() {
       const scheduleData = safeParseJSON('schedule');
