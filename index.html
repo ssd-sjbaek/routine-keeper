@@ -515,6 +515,9 @@
     let currentRoutines = [];
     let routineEditMode = false;
     let todoAddMode = false;
+    let currentTab = 'today';
+    let statsYear  = new Date().getFullYear();
+    let statsMonth = new Date().getMonth() + 1;
 
     const SHIFT_LABELS = {
       'A':  'A조  09:00–18:00',
@@ -550,6 +553,18 @@
       if (shift === 'C')  return '✨ 오전에 하기 좋아요 (출근 전 ~14:00)';
       if (shift === 'DO') return '✨ 오늘은 자유롭게 :)';
       return '📅 오늘 스케줄을 먼저 설정해줘요';
+    }
+
+    function addOneDay(dateKey) {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dt = new Date(y, m - 1, d + 1);
+      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    }
+
+    function subtractOneDay(dateKey) {
+      const [y, m, d] = dateKey.split('-').map(Number);
+      const dt = new Date(y, m - 1, d - 1);
+      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
     }
 
     // ── localStorage 유틸 (마이그레이션용) ───────────
@@ -905,6 +920,23 @@
       const next = SHIFT_CYCLE[(idx + 1) % SHIFT_CYCLE.length];
       await saveShift(dateKey, next);
       await renderCalendar();
+    }
+
+    // ── 탭 전환 ───────────────────────────────────────
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('panel-today').style.display = tab === 'today' ? '' : 'none';
+      document.getElementById('panel-stats').style.display = tab === 'stats' ? '' : 'none';
+      document.getElementById('tab-today').classList.toggle('active', tab === 'today');
+      document.getElementById('tab-stats').classList.toggle('active', tab === 'stats');
+      if (tab === 'stats') renderStats();
+    }
+
+    function statsNavMonth(delta) {
+      statsMonth += delta;
+      if (statsMonth > 12) { statsYear++;  statsMonth = 1; }
+      if (statsMonth < 1)  { statsYear--;  statsMonth = 12; }
+      renderStats();
     }
 
     // ── 앱 시작 ───────────────────────────────────────
