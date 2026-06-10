@@ -1091,7 +1091,10 @@
       document.getElementById('screen-main').style.display     = name === 'main'     ? '' : 'none';
       document.getElementById('screen-schedule').style.display = name === 'schedule' ? '' : 'none';
       if (name === 'schedule') renderCalendar();
-      if (name === 'main')     renderMain();
+      if (name === 'main') {
+        if (currentTab !== 'today') switchTab('today');
+        renderMain();
+      }
     }
 
     // ── 달력 화면 ─────────────────────────────────────
