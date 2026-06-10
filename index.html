@@ -294,6 +294,122 @@
       flex-shrink: 0;
     }
     .todo-text { flex: 1; }
+    /* ── 탭 ─────────────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #f0f0f0;
+      margin: -20px -20px 16px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 12px 8px;
+      font-size: 13px;
+      color: #aaa;
+      cursor: pointer;
+      font-family: inherit;
+      transition: color 0.15s;
+    }
+    .tab-btn.active {
+      color: #5aaa7a;
+      border-bottom-color: #a8d8b8;
+      font-weight: 700;
+    }
+    /* ── 통계 ────────────────────────────────────── */
+    .stats-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .stats-reset-btn {
+      background: none;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      color: #bbb;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .stats-reset-btn:hover { color: #e57373; border-color: #e57373; }
+    .streak-card {
+      background: #fff5ef;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .streak-item { flex: 1; text-align: center; }
+    .streak-num {
+      font-size: 22px;
+      font-weight: 800;
+      color: #f0956a;
+      line-height: 1.2;
+    }
+    .streak-label { font-size: 11px; color: #bbb; margin-top: 2px; }
+    .streak-divider { width: 1px; background: #ffd5bc; height: 36px; flex-shrink: 0; }
+    .stats-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #88a89c;
+      margin-bottom: 8px;
+    }
+    .stats-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .stats-cal-header { font-size: 10px; color: #aaa; padding: 2px 0; }
+    .stats-cal-day {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      margin: 0 auto;
+    }
+    .stats-cal-day.done { background: #b8e6ca; color: #3d8c60; }
+    .stats-cal-day.missed { background: #f5f5f5; color: #ccc; }
+    .stats-cal-day.today { background: #dff4e8; border: 2px solid #a8d8b8; color: #3d8c60; font-weight: 700; }
+    .stats-cal-day.future { color: #ddd; }
+    .stats-cal-legend {
+      display: flex;
+      gap: 10px;
+      font-size: 11px;
+      color: #aaa;
+      margin-bottom: 16px;
+    }
+    .stats-cal-legend span { display: flex; align-items: center; gap: 4px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .rate-row { margin-bottom: 8px; }
+    .rate-header { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 3px; }
+    .rate-bar-bg { background: #eee; border-radius: 4px; height: 7px; }
+    .rate-bar-fill { height: 7px; border-radius: 4px; }
+    .rate-bar-fill.good { background: #b8e6ca; }
+    .rate-bar-fill.low  { background: #ffc4a0; }
+    .full-reset-area {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid #f0f0f0;
+      text-align: center;
+    }
+    .full-reset-btn {
+      background: none;
+      border: none;
+      font-size: 12px;
+      color: #ccc;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .full-reset-btn:hover { color: #e57373; }
   </style>
 </head>
 <body>
@@ -325,13 +441,20 @@
       </div>
     </div>
     <div class="card">
-      <div class="shift-row">
-        <h1>오늘</h1>
-        <span id="shift-badge" class="badge badge-none">미설정</span>
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">오늘</button>
+        <button class="tab-btn" id="tab-stats" onclick="switchTab('stats')">📊 통계</button>
       </div>
-      <div id="timing-hint" class="hint">오늘 스케줄을 먼저 설정해줘요</div>
-      <div id="routine-section" class="routine-list"></div>
-      <div id="todo-section" class="todo-section"></div>
+      <div id="panel-today">
+        <div class="shift-row">
+          <h1>오늘</h1>
+          <span id="shift-badge" class="badge badge-none">미설정</span>
+        </div>
+        <div id="timing-hint" class="hint">오늘 스케줄을 먼저 설정해줘요</div>
+        <div id="routine-section" class="routine-list"></div>
+        <div id="todo-section" class="todo-section"></div>
+      </div>
+      <div id="panel-stats" style="display:none"></div>
     </div>
   </div>
 
