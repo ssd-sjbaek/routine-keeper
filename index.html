@@ -988,96 +988,101 @@
       if (!panel) return;
       panel.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">로딩 중...</div>';
 
-      const todayDate   = new Date();
-      const currentYear = todayDate.getFullYear();
-      const currentMon  = todayDate.getMonth() + 1;
-      const isCurrentMonth = statsYear === currentYear && statsMonth === currentMon;
+      try {
+        const todayDate   = new Date();
+        const currentYear = todayDate.getFullYear();
+        const currentMon  = todayDate.getMonth() + 1;
+        const isCurrentMonth = statsYear === currentYear && statsMonth === currentMon;
 
-      const m = String(statsMonth).padStart(2, '0');
-      const daysInMonth = new Date(statsYear, statsMonth, 0).getDate();
-      const today = getTodayKey();
+        const m = String(statsMonth).padStart(2, '0');
+        const daysInMonth = new Date(statsYear, statsMonth, 0).getDate();
+        const today = getTodayKey();
 
-      const [monthChecks, allChecks] = await Promise.all([
-        loadMonthRoutineChecks(statsYear, statsMonth),
-        loadAllRoutineChecks(),
-      ]);
+        const [monthChecks, allChecks] = await Promise.all([
+          loadMonthRoutineChecks(statsYear, statsMonth),
+          loadAllRoutineChecks(),
+        ]);
 
-      const { current, monthBest, allTimeBest } =
-        calcStreakInfo(allChecks, currentRoutines, statsYear, statsMonth);
-      const rates = calcMonthlyRates(monthChecks, currentRoutines, statsYear, statsMonth);
+        const { current, monthBest, allTimeBest } =
+          calcStreakInfo(allChecks, currentRoutines, statsYear, statsMonth);
+        const rates = calcMonthlyRates(monthChecks, currentRoutines, statsYear, statsMonth);
 
-      // 달력 셀 HTML
-      const firstWeekday = new Date(statsYear, statsMonth - 1, 1).getDay();
-      let calCells = ['일','월','화','수','목','금','토']
-        .map(w => `<div class="stats-cal-header">${w}</div>`).join('');
-      for (let i = 0; i < firstWeekday; i++) calCells += '<div></div>';
-      for (let d = 1; d <= daysInMonth; d++) {
-        const key  = `${statsYear}-${m}-${String(d).padStart(2,'0')}`;
-        const done = currentRoutines.length > 0 &&
-                     currentRoutines.every(r => (monthChecks[key] || {})[r]);
-        let cls;
-        if (key > today)      cls = 'future';
-        else if (key === today) cls = done ? 'today done' : 'today';
-        else                  cls = done ? 'done' : 'missed';
-        calCells += `<div class="stats-cal-day ${cls}">${d}</div>`;
+        // 달력 셀 HTML
+        const firstWeekday = new Date(statsYear, statsMonth - 1, 1).getDay();
+        let calCells = ['일','월','화','수','목','금','토']
+          .map(w => `<div class="stats-cal-header">${w}</div>`).join('');
+        for (let i = 0; i < firstWeekday; i++) calCells += '<div></div>';
+        for (let d = 1; d <= daysInMonth; d++) {
+          const key  = `${statsYear}-${m}-${String(d).padStart(2,'0')}`;
+          const done = currentRoutines.length > 0 &&
+                       currentRoutines.every(r => (monthChecks[key] || {})[r]);
+          let cls;
+          if (key > today)      cls = 'future';
+          else if (key === today) cls = done ? 'today done' : 'today';
+          else                  cls = done ? 'done' : 'missed';
+          calCells += `<div class="stats-cal-day ${cls}">${d}</div>`;
+        }
+
+        // 달성률 바 HTML
+        const rateBars = rates.map(({ name, rate }) => `
+          <div class="rate-row">
+            <div class="rate-header">
+              <span>${name}</span>
+              <span style="color:${rate >= 70 ? '#5aaa7a' : '#f0956a'};font-weight:700">${rate}%</span>
+            </div>
+            <div class="rate-bar-bg">
+              <div class="rate-bar-fill ${rate >= 70 ? 'good' : 'low'}" style="width:${Math.min(100, rate)}%"></div>
+            </div>
+          </div>
+        `).join('');
+
+        panel.innerHTML = `
+          <div class="stats-nav">
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="section-btn" onclick="statsNavMonth(-1)">‹</button>
+              <span style="font-size:15px;font-weight:700">${statsYear}년 ${statsMonth}월</span>
+              <button class="section-btn" onclick="statsNavMonth(1)"
+                ${isCurrentMonth ? 'disabled style="opacity:0.3;cursor:default"' : ''}>›</button>
+            </div>
+            <button class="stats-reset-btn" onclick="resetMonthRoutines()">🗑 이달 초기화</button>
+          </div>
+
+          <div class="streak-card">
+            <div class="streak-item">
+              <div class="streak-num">🔥 ${current}</div>
+              <div class="streak-label">일 연속 달성 중</div>
+            </div>
+            <div class="streak-divider"></div>
+            <div class="streak-item">
+              <div class="streak-num">${monthBest}</div>
+              <div class="streak-label">이번 달 최장</div>
+            </div>
+            <div class="streak-divider"></div>
+            <div class="streak-item">
+              <div class="streak-num">${allTimeBest}</div>
+              <div class="streak-label">역대 최장</div>
+            </div>
+          </div>
+
+          <div class="stats-section-title">📅 달성 현황</div>
+          <div class="stats-cal-grid">${calCells}</div>
+          <div class="stats-cal-legend">
+            <span><span class="legend-dot" style="background:#b8e6ca"></span>전체 완료</span>
+            <span><span class="legend-dot" style="background:#dff4e8;border:1.5px solid #a8d8b8;box-sizing:border-box"></span>오늘</span>
+            <span><span class="legend-dot" style="background:#f5f5f5"></span>미완료</span>
+          </div>
+
+          <div class="stats-section-title">📊 루틴별 달성률</div>
+          ${rateBars || '<div style="font-size:13px;color:#aaa;text-align:center;padding:10px 0">루틴이 없어요</div>'}
+
+          <div class="full-reset-area">
+            <button class="full-reset-btn" onclick="resetAllRoutines()">전체 기록 초기화</button>
+          </div>
+        `;
+      } catch (e) {
+        console.error('통계 로드 실패:', e);
+        panel.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;font-size:13px">불러오기 실패. 다시 시도해주세요.</div>';
       }
-
-      // 달성률 바 HTML
-      const rateBars = rates.map(({ name, rate }) => `
-        <div class="rate-row">
-          <div class="rate-header">
-            <span>${name}</span>
-            <span style="color:${rate >= 70 ? '#5aaa7a' : '#f0956a'};font-weight:700">${rate}%</span>
-          </div>
-          <div class="rate-bar-bg">
-            <div class="rate-bar-fill ${rate >= 70 ? 'good' : 'low'}" style="width:${rate}%"></div>
-          </div>
-        </div>
-      `).join('');
-
-      panel.innerHTML = `
-        <div class="stats-nav">
-          <div style="display:flex;align-items:center;gap:12px">
-            <button class="section-btn" onclick="statsNavMonth(-1)">‹</button>
-            <span style="font-size:15px;font-weight:700">${statsYear}년 ${statsMonth}월</span>
-            <button class="section-btn" onclick="statsNavMonth(1)"
-              ${isCurrentMonth ? 'disabled style="opacity:0.3;cursor:default"' : ''}>›</button>
-          </div>
-          <button class="stats-reset-btn" onclick="resetMonthRoutines()">🗑 이달 초기화</button>
-        </div>
-
-        <div class="streak-card">
-          <div class="streak-item">
-            <div class="streak-num">🔥 ${current}</div>
-            <div class="streak-label">일 연속 달성 중</div>
-          </div>
-          <div class="streak-divider"></div>
-          <div class="streak-item">
-            <div class="streak-num">${monthBest}</div>
-            <div class="streak-label">이번 달 최장</div>
-          </div>
-          <div class="streak-divider"></div>
-          <div class="streak-item">
-            <div class="streak-num">${allTimeBest}</div>
-            <div class="streak-label">역대 최장</div>
-          </div>
-        </div>
-
-        <div class="stats-section-title">📅 달성 현황</div>
-        <div class="stats-cal-grid">${calCells}</div>
-        <div class="stats-cal-legend">
-          <span><span class="legend-dot" style="background:#b8e6ca"></span>전체 완료</span>
-          <span><span class="legend-dot" style="background:#dff4e8;border:1.5px solid #a8d8b8;box-sizing:border-box"></span>오늘</span>
-          <span><span class="legend-dot" style="background:#f5f5f5"></span>미완료</span>
-        </div>
-
-        <div class="stats-section-title">📊 루틴별 달성률</div>
-        ${rateBars || '<div style="font-size:13px;color:#aaa;text-align:center;padding:10px 0">루틴이 없어요</div>'}
-
-        <div class="full-reset-area">
-          <button class="full-reset-btn" onclick="resetAllRoutines()">전체 기록 초기화</button>
-        </div>
-      `;
     }
 
     // ── 화면 전환 ─────────────────────────────────────
