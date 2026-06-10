@@ -946,6 +946,33 @@
       await renderMain();
     }
 
+    async function resetMonthRoutines() {
+      const label = `${statsYear}년 ${statsMonth}월`;
+      if (!window.confirm(`${label} 루틴 기록을 모두 삭제할까요?`)) return;
+      const m = String(statsMonth).padStart(2, '0');
+      const daysInMonth = new Date(statsYear, statsMonth, 0).getDate();
+      const batch = db.batch();
+      for (let d = 1; d <= daysInMonth; d++) {
+        const key = `${statsYear}-${m}-${String(d).padStart(2, '0')}`;
+        batch.delete(
+          db.collection('users').doc(currentUser.uid).collection('routines').doc(key)
+        );
+      }
+      await batch.commit();
+      await renderStats();
+    }
+
+    async function resetAllRoutines() {
+      if (!window.confirm('모든 루틴 기록을 삭제할까요? 되돌릴 수 없어요.')) return;
+      if (!window.confirm('정말요? 전체 기록이 삭제됩니다.')) return;
+      const snap = await db.collection('users').doc(currentUser.uid)
+                            .collection('routines').get();
+      const batch = db.batch();
+      snap.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      await renderStats();
+    }
+
     // ── 화면 전환 ─────────────────────────────────────
     function showScreen(name) {
       document.getElementById('screen-login').style.display    = name === 'login'    ? '' : 'none';
