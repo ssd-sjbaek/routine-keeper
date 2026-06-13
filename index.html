@@ -355,63 +355,6 @@
     }
     .back-btn:hover { background: color-mix(in srgb, var(--color-bg) 50%, white); }
 
-    /* 달력 */
-    .cal-guide {
-      text-align: center;
-      font-size: 12px;
-      color: #99bbcc;
-      margin-bottom: 12px;
-      position: relative;
-      z-index: 1;
-    }
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      max-width: 480px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-    .cal-header {
-      text-align: center;
-      font-size: 12px;
-      color: #99bbcc;
-      padding: 4px 0;
-      font-weight: 600;
-    }
-    .cal-day {
-      background: var(--color-card);
-      border: 1px solid color-mix(in srgb, var(--color-border) 40%, white);
-      border-radius: 10px;
-      padding: 6px 2px;
-      text-align: center;
-      cursor: pointer;
-      min-height: 52px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 1px 4px rgba(100,160,220,0.08);
-      transition: background 0.1s;
-    }
-    .cal-day:hover { background: color-mix(in srgb, var(--color-bg) 20%, white); }
-    .day-num { font-size: 13px; font-weight: 600; color: #334455; }
-    .day-shift { font-size: 10px; margin-top: 3px; font-weight: 700; }
-    .shift-a  { background: color-mix(in srgb, #c8e0ff 60%, white); }
-    .shift-a  .day-shift { color: #1565c0; }
-    .shift-c  { background: color-mix(in srgb, #ffd8c8 60%, white); }
-    .shift-c  .day-shift { color: #bf360c; }
-    .shift-do { background: #eeeeee; }
-    .shift-do .day-shift { color: #666; }
-
-    /* 뱃지 */
-    .badge { border-radius: 8px; padding: 5px 12px; font-size: 12px; font-weight: 600; }
-    .badge-a  { background: #d4eaff; color: #1565c0; }
-    .badge-c  { background: #ffe0d4; color: #bf360c; }
-    .badge-do { background: #e8e8e8; color: #555; }
-    .badge-none { background: #f5f5f5; color: #aaa; }
-
     /* 설정 화면 */
     #screen-schedule, #screen-settings { position: relative; z-index: 1; }
     .settings-card {
@@ -625,7 +568,6 @@
       <!-- 오늘 패널 -->
       <div id="panel-today">
         <div class="date-hint-bar" id="date-hint-bar">로딩 중...</div>
-        <div id="timing-hint" class="hint" style="display:none"></div>
         <div id="routine-section"></div>
         <div id="todo-section" class="todo-section"></div>
       </div>
@@ -646,13 +588,16 @@
     </div>
   </div>
 
-  <!-- 스케줄 설정 화면 -->
+  <!-- 스케줄 화면 -->
   <div id="screen-schedule" style="display:none">
     <div class="sub-screen-header">
       <button class="back-btn" onclick="showScreen('main')">← 뒤로</button>
-      <span id="schedule-month"></span>
+      <div class="cal-month-nav">
+        <button class="cal-nav-btn" onclick="calNavMonth(-1)">◀</button>
+        <span id="schedule-month"></span>
+        <button class="cal-nav-btn" onclick="calNavMonth(1)">▶</button>
+      </div>
     </div>
-    <p class="cal-guide">날짜를 클릭하면 A조 → C조 → DO → 비움 순으로 바뀌어요</p>
     <div id="calendar" class="calendar"></div>
   </div>
 
@@ -784,14 +729,6 @@
     let statsYear  = new Date().getFullYear();
     let statsMonth = new Date().getMonth() + 1;
 
-    const SHIFT_LABELS = {
-      'A':  'A조  09:00–18:00',
-      'C':  'C조  14:00–22:00',
-      'DO': 'Day Off',
-    };
-
-    const SHIFT_CYCLE = ['A', 'C', 'DO', null];
-
     // ── 날짜 유틸 ─────────────────────────────────────
     function getTodayKey() {
       const d = new Date();
@@ -810,14 +747,6 @@
     function getCurrentMonthLabel() {
       const d = new Date();
       return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
-    }
-
-    // ── 타이밍 힌트 ───────────────────────────────────
-    function getTimingHint(shift) {
-      if (shift === 'A')  return '✨ 저녁에 하기 좋아요 (퇴근 후 18:00~)';
-      if (shift === 'C')  return '✨ 오전에 하기 좋아요 (출근 전 ~14:00)';
-      if (shift === 'DO') return '✨ 오늘은 자유롭게 :)';
-      return '📅 오늘 스케줄을 먼저 설정해줘요';
     }
 
     function addOneDay(dateKey) {
@@ -843,22 +772,6 @@
     }
 
     // ── Firestore 데이터 함수 ─────────────────────────
-    async function saveShift(dateKey, shift) {
-      const ref = db.collection('users').doc(currentUser.uid)
-                    .collection('schedule').doc(dateKey);
-      if (shift === null) {
-        await ref.delete();
-      } else {
-        await ref.set({ shift });
-      }
-    }
-
-    async function loadShift(dateKey) {
-      const doc = await db.collection('users').doc(currentUser.uid)
-                           .collection('schedule').doc(dateKey).get();
-      return doc.exists ? doc.data().shift : null;
-    }
-
     async function saveRoutineCheck(dateKey, routineName, checked) {
       await db.collection('users').doc(currentUser.uid)
               .collection('routines').doc(dateKey)
@@ -1000,25 +913,16 @@
 
     // ── localStorage → Firestore 마이그레이션 ─────────
     async function migrateFromLocalStorage() {
-      const scheduleData = safeParseJSON('schedule');
       const routinesData = safeParseJSON('routines');
-
-      const hasSched    = Object.keys(scheduleData).length > 0;
-      const hasRoutines = Object.keys(routinesData).length > 0;
-      if (!hasSched && !hasRoutines) return;
+      if (Object.keys(routinesData).length === 0) return;
 
       const batch   = db.batch();
       const userRef = db.collection('users').doc(currentUser.uid);
-
-      for (const [dateKey, shift] of Object.entries(scheduleData)) {
-        batch.set(userRef.collection('schedule').doc(dateKey), { shift });
-      }
       for (const [dateKey, checks] of Object.entries(routinesData)) {
         batch.set(userRef.collection('routines').doc(dateKey), checks);
       }
 
       await batch.commit();
-      localStorage.removeItem('schedule');
       localStorage.removeItem('routines');
     }
 
@@ -1042,19 +946,12 @@
     // ── 메인 화면 ─────────────────────────────────────
     async function renderMain() {
       const today = getTodayKey();
-      const [shift, checks, allTodos] = await Promise.all([
-        loadShift(today),
+      const [checks, allTodos] = await Promise.all([
         loadRoutineChecks(today),
         loadTodoList(),
       ]);
 
-      const shiftText = shift ? ` · ${SHIFT_LABELS[shift]}` : '';
-      document.getElementById('date-hint-bar').textContent = getTodayLabel() + shiftText;
-
-      const timingHintEl = document.getElementById('timing-hint');
-      const hintText = getTimingHint(shift);
-      timingHintEl.textContent = hintText;
-      timingHintEl.style.display = hintText ? '' : 'none';
+      document.getElementById('date-hint-bar').textContent = getTodayLabel();
 
       if (currentUser && currentUser.displayName) {
         document.getElementById('user-display-name').textContent = currentUser.displayName + '의 홈';
@@ -1400,7 +1297,6 @@
       if (name === 'main')     { const el = document.getElementById('nav-home');     if (el) el.classList.add('active'); }
       if (name === 'schedule') { const el = document.getElementById('nav-schedule'); if (el) el.classList.add('active'); }
       if (name === 'settings') { const el = document.getElementById('nav-settings'); if (el) el.classList.add('active'); }
-      if (name === 'schedule') renderCalendar();
       if (name === 'settings') renderSettings();
       if (name === 'main') {
         if (currentTab !== 'today') switchTab('today');
@@ -1459,66 +1355,6 @@
       if (/^#[0-9a-fA-F]{6}$/.test(val)) {
         document.querySelectorAll(`.swatch[data-key="${key}"]`).forEach(s => s.classList.remove('active'));
       }
-    }
-
-    // ── 달력 화면 ─────────────────────────────────────
-    async function renderCalendar() {
-      const d     = new Date();
-      const year  = d.getFullYear();
-      const month = d.getMonth();
-
-      document.getElementById('schedule-month').textContent = getCurrentMonthLabel();
-
-      const firstWeekday = new Date(year, month, 1).getDay();
-      const daysInMonth  = new Date(year, month + 1, 0).getDate();
-
-      const dateKeys = [];
-      for (let day = 1; day <= daysInMonth; day++) {
-        const m  = String(month + 1).padStart(2, '0');
-        const dd = String(day).padStart(2, '0');
-        dateKeys.push(`${year}-${m}-${dd}`);
-      }
-      const shiftValues = await Promise.all(dateKeys.map(k => loadShift(k)));
-      const shiftMap = {};
-      dateKeys.forEach((k, i) => { shiftMap[k] = shiftValues[i]; });
-
-      const cal = document.getElementById('calendar');
-      cal.innerHTML = '';
-
-      ['일', '월', '화', '수', '목', '금', '토'].forEach(w => {
-        const h = document.createElement('div');
-        h.className = 'cal-header';
-        h.textContent = w;
-        cal.appendChild(h);
-      });
-
-      for (let i = 0; i < firstWeekday; i++) {
-        cal.appendChild(document.createElement('div'));
-      }
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const m   = String(month + 1).padStart(2, '0');
-        const dd  = String(day).padStart(2, '0');
-        const key = `${year}-${m}-${dd}`;
-        const shift = shiftMap[key];
-
-        const cell = document.createElement('div');
-        cell.className = 'cal-day' + (shift ? ` shift-${shift.toLowerCase()}` : '');
-        cell.innerHTML = `
-          <span class="day-num">${day}</span>
-          ${shift ? `<span class="day-shift">${shift}</span>` : ''}
-        `;
-        cell.onclick = () => cycleShift(key);
-        cal.appendChild(cell);
-      }
-    }
-
-    async function cycleShift(dateKey) {
-      const current = await loadShift(dateKey);
-      const idx  = SHIFT_CYCLE.indexOf(current);
-      const next = SHIFT_CYCLE[(idx + 1) % SHIFT_CYCLE.length];
-      await saveShift(dateKey, next);
-      await renderCalendar();
     }
 
     // ── 탭 전환 ───────────────────────────────────────
