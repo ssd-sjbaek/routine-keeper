@@ -251,6 +251,18 @@
       line-height: 1;
     }
     .routine-delete:hover, .todo-delete:hover { color: #e57373; }
+    .routine-edit-input {
+      flex: 1;
+      border: none;
+      border-bottom: 1.5px solid var(--color-accent);
+      background: transparent;
+      font-size: 14px;
+      font-family: inherit;
+      color: #334455;
+      padding: 0 2px;
+      outline: none;
+      min-width: 0;
+    }
 
     /* 입력 행 */
     .add-input-row {
@@ -1443,7 +1455,7 @@
           item.dataset.routine = name;
           item.innerHTML = `
             <span class="drag-handle">≡</span>
-            <span class="routine-name">${escapeHtml(name)}</span>
+            <span class="routine-name" style="cursor:pointer" onclick="startRoutineEdit(this, ${index}, ${JSON.stringify(name)})">${escapeHtml(name)}</span>
             <button class="routine-delete" onclick="deleteRoutine(${index})">✕</button>
           `;
           routineList.appendChild(item);
@@ -1554,6 +1566,66 @@
     async function deleteRoutine(index) {
       currentRoutines.splice(index, 1);
       await renderMain();
+    }
+
+    function startRoutineEdit(span, index, originalName) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = originalName;
+      input.maxLength = 50;
+      input.className = 'routine-edit-input';
+
+      let committed = false;
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+        if (e.key === 'Escape') {
+          committed = true;
+          input.parentNode.replaceChild(span, input);
+        }
+      });
+
+      input.addEventListener('blur', () => {
+        if (!committed) {
+          committed = true;
+          commitRoutineEdit(input, span, index, originalName);
+        }
+      });
+
+      span.parentNode.replaceChild(input, span);
+      input.focus();
+      input.select();
+    }
+
+    async function commitRoutineEdit(input, span, index, originalName) {
+      const newName = input.value.trim();
+
+      function restoreSpan(name) {
+        span.textContent = name;
+        if (input.parentNode) input.parentNode.replaceChild(span, input);
+      }
+
+      if (!newName || newName === originalName) {
+        restoreSpan(originalName);
+        return;
+      }
+
+      if (currentRoutines.some((n, i) => n === newName && i !== index)) {
+        restoreSpan(originalName);
+        return;
+      }
+
+      currentRoutines[index] = newName;
+      const item = input.closest('[data-routine]');
+      if (item) item.dataset.routine = newName;
+      restoreSpan(newName);
+      try {
+        await saveRoutineList(currentRoutines);
+      } catch {
+        currentRoutines[index] = originalName;
+        if (item) item.dataset.routine = originalName;
+        span.textContent = originalName;
+      }
     }
 
     async function addRoutine() {
