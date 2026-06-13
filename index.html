@@ -1286,7 +1286,7 @@
           <div class="rate-row">
             <div class="rate-header">
               <span>${name}</span>
-              <span style="color:${rate >= 70 ? '#5aaa7a' : '#f0956a'};font-weight:700">${rate}%</span>
+              <span style="color:${rate >= 70 ? 'var(--color-accent)' : '#f0956a'};font-weight:700">${rate}%</span>
             </div>
             <div class="rate-bar-bg">
               <div class="rate-bar-fill ${rate >= 70 ? 'good' : 'low'}" style="width:${Math.min(100, rate)}%"></div>
@@ -1325,8 +1325,8 @@
           <div class="stats-section-title">📅 달성 현황</div>
           <div class="stats-cal-grid">${calCells}</div>
           <div class="stats-cal-legend">
-            <span><span class="legend-dot" style="background:#b8e6ca"></span>전체 완료</span>
-            <span><span class="legend-dot" style="background:#dff4e8;border:1.5px solid #a8d8b8;box-sizing:border-box"></span>오늘</span>
+            <span><span class="legend-dot" style="background:var(--color-bg)"></span>전체 완료</span>
+            <span><span class="legend-dot" style="background:color-mix(in srgb, var(--color-bg) 40%, white);border:1.5px solid var(--color-border);box-sizing:border-box"></span>오늘</span>
             <span><span class="legend-dot" style="background:#f5f5f5"></span>미완료</span>
           </div>
 
