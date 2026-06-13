@@ -230,6 +230,15 @@
       cursor: pointer;
       padding: 2px 4px;
     }
+    .drag-handle {
+      cursor: grab;
+      padding: 0 8px 0 2px;
+      color: #ccc;
+      font-size: 16px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .drag-handle:active { cursor: grabbing; }
     .routine-delete, .todo-delete {
       margin-left: auto;
       background: none;
@@ -471,6 +480,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
   <script>
     // ── Firebase 초기화 ────────────────────────────────
@@ -792,15 +802,21 @@
       `;
       routineSection.appendChild(routineHeader);
 
+      const routineList = document.createElement('div');
+      routineList.id = 'routine-list';
+      routineSection.appendChild(routineList);
+
       currentRoutines.forEach((name, index) => {
         if (routineEditMode) {
           const item = document.createElement('div');
           item.className = 'routine-item';
+          item.dataset.routine = name;
           item.innerHTML = `
+            <span class="drag-handle">≡</span>
             <span class="routine-name">${name}</span>
             <button class="routine-delete" onclick="deleteRoutine(${index})">✕</button>
           `;
-          routineSection.appendChild(item);
+          routineList.appendChild(item);
         } else {
           const isChecked = checks[name] || false;
           const item = document.createElement('label');
@@ -810,11 +826,22 @@
                    onchange='toggleRoutine(${JSON.stringify(name)}, this.checked)'>
             <span class="routine-name">${name}</span>
           `;
-          routineSection.appendChild(item);
+          routineList.appendChild(item);
         }
       });
 
       if (routineEditMode) {
+        Sortable.create(routineList, {
+          handle: '.drag-handle',
+          animation: 150,
+          onEnd() {
+            const newOrder = Array.from(routineList.querySelectorAll('[data-routine]'))
+              .map(el => el.dataset.routine);
+            currentRoutines = newOrder;
+            saveRoutineList(currentRoutines);
+          }
+        });
+
         const addRow = document.createElement('div');
         addRow.className = 'add-input-row';
         addRow.innerHTML = `
