@@ -740,7 +740,8 @@
         const stored = localStorage.getItem('cy_theme');
         if (!stored) return DEFAULT_THEME;
         const t = JSON.parse(stored);
-        if (!t.bg || !t.border || !t.accent || !t.card) return DEFAULT_THEME;
+        const hexRe = /^#[0-9a-fA-F]{6}$/;
+        if (!hexRe.test(t.bg) || !hexRe.test(t.border) || !hexRe.test(t.accent) || !hexRe.test(t.card)) return DEFAULT_THEME;
         return t;
       } catch {
         return DEFAULT_THEME;
@@ -1407,7 +1408,7 @@
           <span class="color-row-label">${label}</span>
           <div class="color-row-right">
             <div class="swatches">${swatchesHtml}</div>
-            <input class="hex-input" id="hex-${key}" value="${theme[key]}"
+            <input class="hex-input" id="hex-${key}" value="${theme[key].replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
                    oninput="onHexInput(this, '${key}')" maxlength="7" />
           </div>
         `;
