@@ -1285,7 +1285,7 @@
           item.dataset.routine = name;
           item.innerHTML = `
             <span class="drag-handle">≡</span>
-            <span class="routine-name">${name}</span>
+            <span class="routine-name">${escapeHtml(name)}</span>
             <button class="routine-delete" onclick="deleteRoutine(${index})">✕</button>
           `;
           routineList.appendChild(item);
@@ -1296,7 +1296,7 @@
           item.innerHTML = `
             <input type="checkbox" ${isChecked ? 'checked' : ''}
                    onchange='toggleRoutine(${JSON.stringify(name)}, this.checked)'>
-            <span class="routine-name">${name}</span>
+            <span class="routine-name">${escapeHtml(name)}</span>
           `;
           routineList.appendChild(item);
         }
@@ -1353,7 +1353,7 @@
         el.innerHTML = `
           <input type="checkbox" ${item.done ? 'checked' : ''}
                  onchange='toggleTodo(${JSON.stringify(item.id)}, this.checked)'>
-          <span class="todo-text">${item.text}</span>
+          <span class="todo-text">${escapeHtml(item.text)}</span>
           <button class="todo-delete" onclick='deleteTodo(${JSON.stringify(item.id)})'>✕</button>
         `;
         todoSection.appendChild(el);
@@ -1833,6 +1833,7 @@
     }
 
     async function saveEventForm() {
+      if (!currentUser || !currentModalDate) return;
       const title = document.getElementById('ev-title').value.trim();
       if (!title) return;
       const time = document.getElementById('ev-time').value  || null;
