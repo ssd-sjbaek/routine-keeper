@@ -16,7 +16,7 @@
 
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, sans-serif;
-      background: #f0f8ff;
+      background: var(--color-bg);
       color: #334455;
       min-height: 100vh;
       padding: 20px;
@@ -555,7 +555,10 @@
     function loadTheme() {
       try {
         const stored = localStorage.getItem('cy_theme');
-        return stored ? JSON.parse(stored) : DEFAULT_THEME;
+        if (!stored) return DEFAULT_THEME;
+        const t = JSON.parse(stored);
+        if (!t.bg || !t.border || !t.accent || !t.card) return DEFAULT_THEME;
+        return t;
       } catch {
         return DEFAULT_THEME;
       }
