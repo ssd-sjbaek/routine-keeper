@@ -1022,6 +1022,23 @@
       localStorage.removeItem('routines');
     }
 
+    async function updateStreakBadge() {
+      const badge = document.getElementById('streak-header-badge');
+      if (!badge) return;
+      try {
+        const allChecks = await loadAllRoutineChecks();
+        const { current } = calcStreakInfo(allChecks, currentRoutines, statsYear, statsMonth);
+        if (current > 0) {
+          badge.textContent = `🔥 ${current}일 연속`;
+          badge.style.display = '';
+        } else {
+          badge.style.display = 'none';
+        }
+      } catch {
+        badge.style.display = 'none';
+      }
+    }
+
     // ── 메인 화면 ─────────────────────────────────────
     async function renderMain() {
       const today = getTodayKey();
@@ -1156,6 +1173,9 @@
           if (el) el.focus();
         }, 50);
       }
+
+      // 헤더 스트릭 뱃지 비동기 업데이트
+      updateStreakBadge();
     }
 
     async function toggleRoutine(name, checked) {
