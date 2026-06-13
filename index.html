@@ -612,15 +612,9 @@
     .shift-badge-C { background: #e8f0d0; color: #5a7a3a; }
     .shift-badge-D { background: #ece8f8; color: #5040a0; }
     .shift-badge-empty {
-      font-size: 8px;
       color: #ddeeff;
-      border-radius: 10px;
-      padding: 1px 5px;
-      line-height: 1.4;
-      cursor: pointer;
-      display: inline-block;
-      user-select: none;
       border: 1px dashed #ccdde8;
+      font-size: 8px;
     }
 
     /* ── 일정 모달 ── */
@@ -1792,13 +1786,14 @@
           numSpan.style.cursor = 'pointer';
           numSpan.onclick = (e) => { e.stopPropagation(); openDayModal(dateKey); };
 
-          const shiftVal = shifts[dateKey];
+          const VALID_SHIFTS = new Set(['A', 'C', 'D']);
+          const shiftVal = VALID_SHIFTS.has(shifts[dateKey]) ? shifts[dateKey] : null;
           const shiftEl = document.createElement('span');
           if (shiftVal) {
             shiftEl.className = `shift-badge shift-badge-${shiftVal}`;
             shiftEl.textContent = shiftVal;
           } else {
-            shiftEl.className = 'shift-badge-empty';
+            shiftEl.className = 'shift-badge shift-badge-empty';
             shiftEl.textContent = '+';
           }
           shiftEl.onclick = async (e) => {
