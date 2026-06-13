@@ -698,6 +698,29 @@
       card:   '#ffffff',
     };
 
+    const COLOR_PICKER_CONFIG = [
+      {
+        key: 'bg',
+        label: '🌈 배경 색',
+        swatches: ['#b2e0f7','#ffd0e8','#c8f0d8','#f0d8f8','#ffeec8'],
+      },
+      {
+        key: 'border',
+        label: '🖼 테두리 색',
+        swatches: ['#88ccee','#ffaad4','#88ccb8','#cc99ee','#ffbb88'],
+      },
+      {
+        key: 'accent',
+        label: '✨ 포인트 색',
+        swatches: ['#4488bb','#cc4477','#339977','#8855cc','#cc7733'],
+      },
+      {
+        key: 'card',
+        label: '🗂 카드 배경',
+        swatches: ['#ffffff','#f8fdff','#fff8fc','#f8fff8','#fffaf4'],
+      },
+    ];
+
     function applyTheme(theme) {
       const t = theme || DEFAULT_THEME;
       const root = document.documentElement.style;
@@ -1365,11 +1388,56 @@
     }
 
     function renderSettings() {
-      // completed in Task 4
+      const theme = loadTheme();
+      const container = document.getElementById('color-pickers');
+      container.innerHTML = '';
+
+      COLOR_PICKER_CONFIG.forEach(({ key, label, swatches }) => {
+        const row = document.createElement('div');
+        row.className = 'color-row';
+
+        const swatchesHtml = swatches.map(color => `
+          <div class="swatch ${theme[key] === color ? 'active' : ''}"
+               style="background:${color}"
+               data-key="${key}" data-color="${color}"
+               onclick="onSwatchClick(this)"></div>
+        `).join('');
+
+        row.innerHTML = `
+          <span class="color-row-label">${label}</span>
+          <div class="color-row-right">
+            <div class="swatches">${swatchesHtml}</div>
+            <input class="hex-input" id="hex-${key}" value="${theme[key]}"
+                   oninput="onHexInput(this, '${key}')" maxlength="7" />
+          </div>
+        `;
+        container.appendChild(row);
+      });
     }
 
     function onSaveTheme() {
-      // completed in Task 4
+      const theme = {};
+      COLOR_PICKER_CONFIG.forEach(({ key }) => {
+        const val = document.getElementById('hex-' + key).value.trim();
+        theme[key] = /^#[0-9a-fA-F]{6}$/.test(val) ? val : DEFAULT_THEME[key];
+      });
+      saveTheme(theme);
+      showScreen('main');
+    }
+
+    function onSwatchClick(el) {
+      const key = el.dataset.key;
+      const color = el.dataset.color;
+      document.querySelectorAll(`.swatch[data-key="${key}"]`).forEach(s => s.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('hex-' + key).value = color;
+    }
+
+    function onHexInput(el, key) {
+      const val = el.value.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+        document.querySelectorAll(`.swatch[data-key="${key}"]`).forEach(s => s.classList.remove('active'));
+      }
     }
 
     // ── 달력 화면 ─────────────────────────────────────
