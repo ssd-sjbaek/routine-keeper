@@ -882,8 +882,9 @@
       document.getElementById('date-hint-bar').textContent = getTodayLabel() + shiftText;
 
       const timingHintEl = document.getElementById('timing-hint');
-      timingHintEl.textContent = getTimingHint(shift);
-      timingHintEl.style.display = '';
+      const hintText = getTimingHint(shift);
+      timingHintEl.textContent = hintText;
+      timingHintEl.style.display = hintText ? '' : 'none';
 
       if (currentUser && currentUser.displayName) {
         document.getElementById('user-display-name').textContent = currentUser.displayName + '의 홈';
@@ -1235,6 +1236,10 @@
     }
 
     function renderSettings() {
+      // completed in Task 4
+    }
+
+    function onSaveTheme() {
       // completed in Task 4
     }
 
