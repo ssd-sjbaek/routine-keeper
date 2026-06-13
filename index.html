@@ -1317,15 +1317,16 @@
     // ── 메인 화면 ─────────────────────────────────────
     async function renderMain() {
       const today = getTodayKey();
-      const [checks, allTodos] = await Promise.all([
+      const [checks, allTodos, rawShift] = await Promise.all([
         loadRoutineChecks(today),
         loadTodoList(),
+        loadTodayShift().catch(() => null),
       ]);
 
-      let todayShift = null;
-      try { todayShift = await loadTodayShift(); } catch { /* 표시 생략 */ }
-      const shiftHtml = todayShift
-        ? `<span class="shift-badge shift-badge-${todayShift}">${escapeHtml(todayShift)}</span>`
+      const VALID_HOME_SHIFTS = ['A', 'C', 'D'];
+      const validShift = VALID_HOME_SHIFTS.includes(rawShift) ? rawShift : null;
+      const shiftHtml = validShift
+        ? `<span class="shift-badge shift-badge-${validShift}">${escapeHtml(validShift)}</span>`
         : '';
       document.getElementById('date-hint-bar').innerHTML =
         `<span class="date-hint-shift">${escapeHtml(getTodayLabel())}${shiftHtml}</span>`;
