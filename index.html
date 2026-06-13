@@ -1074,6 +1074,46 @@
         .collection('events').doc(eventId).delete();
     }
 
+    // ── 근무 스티커 Firestore 함수 ────────────────────────
+    async function loadShiftsForMonth(year, month) {
+      const pad = n => String(n).padStart(2, '0');
+      const start   = `${year}-${pad(month)}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const end     = `${year}-${pad(month)}-${pad(lastDay)}`;
+      const snap = await db.collection('users').doc(currentUser.uid)
+        .collection('shifts')
+        .where('date', '>=', start)
+        .where('date', '<=', end)
+        .get();
+      const result = {};
+      snap.forEach(doc => { result[doc.data().date] = doc.data().shift; });
+      return result;
+    }
+
+    async function loadTodayShift() {
+      const doc = await db.collection('users').doc(currentUser.uid)
+        .collection('shifts').doc(getTodayKey()).get();
+      return doc.exists ? doc.data().shift : null;
+    }
+
+    async function toggleShift(dateKey) {
+      const ref = db.collection('users').doc(currentUser.uid)
+        .collection('shifts').doc(dateKey);
+      const doc = await ref.get();
+      const order = ['A', 'C', 'D'];
+      if (!doc.exists) {
+        await ref.set({ date: dateKey, shift: 'A', createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+      } else {
+        const current = doc.data().shift;
+        const idx = order.indexOf(current);
+        if (idx === order.length - 1) {
+          await ref.delete();
+        } else {
+          await ref.update({ shift: order[idx + 1] });
+        }
+      }
+    }
+
     // ── Firestore 데이터 함수 ─────────────────────────
     async function saveRoutineCheck(dateKey, routineName, checked) {
       await db.collection('users').doc(currentUser.uid)
