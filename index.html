@@ -626,6 +626,47 @@
       font-size: 8px;
     }
 
+    /* 프로필 설정 */
+    .profile-field-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .profile-field-row:last-child { margin-bottom: 0; }
+    .profile-field-label {
+      font-size: 11px;
+      color: #99bbcc;
+    }
+    .profile-field-input-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .profile-input {
+      flex: 1;
+      border: 1.5px solid var(--color-border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #334455;
+      background: var(--color-card);
+    }
+    .profile-input:focus { outline: none; border-color: var(--color-accent); }
+    .profile-save-btn {
+      background: color-mix(in srgb, var(--color-bg) 30%, white);
+      border: 1px solid var(--color-border);
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: var(--color-accent);
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .profile-save-btn:hover { background: color-mix(in srgb, var(--color-bg) 50%, white); }
+
     /* ── 일정 모달 ── */
     .day-modal-overlay {
       position: fixed;
@@ -800,7 +841,7 @@
       <div class="mh-header">
         <div class="mh-avatar">🌸</div>
         <div class="mh-info">
-          <div class="mh-title">루틴 지킴이</div>
+          <div class="mh-title" id="mh-title-text">루틴 지킴이</div>
           <div class="mh-sub" id="user-display-name">로딩 중...</div>
         </div>
         <div class="mh-streak" id="streak-header-badge" style="display:none"></div>
@@ -851,6 +892,23 @@
     <div class="sub-screen-header">
       <button class="back-btn" onclick="showScreen('main')">← 뒤로</button>
       <span>⚙️ 설정</span>
+    </div>
+    <div class="settings-card" style="margin-bottom:12px">
+      <div class="settings-section-title">👤 프로필</div>
+      <div class="profile-field-row">
+        <label class="profile-field-label">앱 이름</label>
+        <div class="profile-field-input-wrap">
+          <input id="input-app-name" class="profile-input" type="text" maxlength="20" placeholder="루틴 지킴이">
+          <button class="profile-save-btn" onclick="onSaveAppName()">저장</button>
+        </div>
+      </div>
+      <div class="profile-field-row">
+        <label class="profile-field-label">닉네임</label>
+        <div class="profile-field-input-wrap">
+          <input id="input-nickname" class="profile-input" type="text" maxlength="20" placeholder="나의 홈">
+          <button class="profile-save-btn" onclick="onSaveNickname()">저장</button>
+        </div>
+      </div>
     </div>
     <div class="settings-card">
       <div class="settings-section-title">🎨 색상 꾸미기</div>
@@ -1142,6 +1200,27 @@
       }
     }
 
+    // ── 프로필 Firestore 함수 ─────────────────────────
+    let cachedProfile = null;
+
+    async function loadUserProfile() {
+      const doc = await db.collection('users').doc(currentUser.uid).get();
+      cachedProfile = doc.exists
+        ? { appName: doc.data().appName || '', nickname: doc.data().nickname || '' }
+        : { appName: '', nickname: '' };
+      return cachedProfile;
+    }
+
+    async function saveAppName(name) {
+      await db.collection('users').doc(currentUser.uid).set({ appName: name }, { merge: true });
+      if (cachedProfile) cachedProfile.appName = name;
+    }
+
+    async function saveNickname(name) {
+      await db.collection('users').doc(currentUser.uid).set({ nickname: name }, { merge: true });
+      if (cachedProfile) cachedProfile.nickname = name;
+    }
+
     // ── Firestore 데이터 함수 ─────────────────────────
     async function saveRoutineCheck(dateKey, routineName, checked) {
       await db.collection('users').doc(currentUser.uid)
@@ -1331,9 +1410,9 @@
       document.getElementById('date-hint-bar').innerHTML =
         `<span class="date-hint-shift">${escapeHtml(getTodayLabel())}${shiftHtml}</span>`;
 
-      if (currentUser && currentUser.displayName) {
-        document.getElementById('user-display-name').textContent = currentUser.displayName + '의 홈';
-      }
+      const profile = cachedProfile || { appName: '', nickname: '' };
+      document.getElementById('mh-title-text').textContent = profile.appName || '루틴 지킴이';
+      document.getElementById('user-display-name').textContent = profile.nickname || '나의 홈';
 
       // ── 루틴 섹션 ──
       const routineSection = document.getElementById('routine-section');
@@ -1708,6 +1787,13 @@
         `;
         container.appendChild(row);
       });
+
+      // 프로필 필드 초기화
+      const profile = cachedProfile || { appName: '', nickname: '' };
+      const appNameInput = document.getElementById('input-app-name');
+      const nicknameInput = document.getElementById('input-nickname');
+      if (appNameInput) appNameInput.value = profile.appName;
+      if (nicknameInput) nicknameInput.value = profile.nickname;
     }
 
     function onSaveTheme() {
@@ -1732,6 +1818,26 @@
       const val = el.value.trim();
       if (/^#[0-9a-fA-F]{6}$/.test(val)) {
         document.querySelectorAll(`.swatch[data-key="${key}"]`).forEach(s => s.classList.remove('active'));
+      }
+    }
+
+    async function onSaveAppName() {
+      const val = (document.getElementById('input-app-name').value || '').trim();
+      try {
+        await saveAppName(val);
+        document.getElementById('mh-title-text').textContent = val || '루틴 지킴이';
+      } catch {
+        alert('저장에 실패했어요. 다시 시도해주세요.');
+      }
+    }
+
+    async function onSaveNickname() {
+      const val = (document.getElementById('input-nickname').value || '').trim();
+      try {
+        await saveNickname(val);
+        document.getElementById('user-display-name').textContent = val || '나의 홈';
+      } catch {
+        alert('저장에 실패했어요. 다시 시도해주세요.');
       }
     }
 
@@ -1986,7 +2092,7 @@
       currentUser = user;
       if (user) {
         await migrateFromLocalStorage();
-        await initRoutineSettings();
+        await Promise.all([initRoutineSettings(), loadUserProfile()]);
         showScreen('main');
       } else {
         routineEditMode = false;
