@@ -835,6 +835,31 @@
     </div>
   </div>
 
+  <!-- 일정 모달 -->
+  <div id="day-modal-overlay" class="day-modal-overlay" style="display:none" onclick="onModalOverlayClick(event)">
+    <div class="day-modal">
+      <div class="day-modal-header">
+        <span id="day-modal-title"></span>
+        <button class="day-modal-close" onclick="closeDayModal()">×</button>
+      </div>
+      <div id="day-modal-list">
+        <div id="day-event-list"></div>
+        <button class="day-add-btn" onclick="showEventForm(currentModalDate)">+ 일정 추가</button>
+      </div>
+      <div id="day-modal-form" style="display:none">
+        <div class="ev-form-inner">
+          <input id="ev-title" class="ev-input" type="text" placeholder="일정 제목 *" maxlength="50" oninput="updateSaveBtn()">
+          <input id="ev-time" class="ev-input" type="time">
+          <textarea id="ev-memo" class="ev-input ev-memo" placeholder="메모 (선택)" maxlength="200"></textarea>
+          <div class="ev-form-btns">
+            <button class="ev-cancel-btn" onclick="showEventList()">취소</button>
+            <button id="ev-save-btn" class="ev-save-btn" onclick="saveEventForm()" disabled>저장</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -1709,6 +1734,122 @@
       calViewMonth += delta;
       if (calViewMonth > 12) { calViewYear++;  calViewMonth = 1; }
       if (calViewMonth < 1)  { calViewYear--;  calViewMonth = 12; }
+      await renderCalendar();
+    }
+
+    // ── 일정 모달 ─────────────────────────────────────
+    async function openDayModal(dateKey) {
+      currentModalDate = dateKey;
+      editingEventId   = null;
+
+      const [y, m, d]  = dateKey.split('-').map(Number);
+      const weekdays   = ['일','월','화','수','목','금','토'];
+      const dt         = new Date(y, m - 1, d);
+      document.getElementById('day-modal-title').textContent =
+        `${y}년 ${m}월 ${d}일 (${weekdays[dt.getDay()]})`;
+
+      document.getElementById('day-modal-overlay').style.display = '';
+      showEventList();
+      await renderDayEventList(dateKey);
+    }
+
+    function closeDayModal() {
+      document.getElementById('day-modal-overlay').style.display = 'none';
+      currentModalDate = null;
+      editingEventId   = null;
+    }
+
+    function onModalOverlayClick(e) {
+      if (e.target === document.getElementById('day-modal-overlay')) closeDayModal();
+    }
+
+    async function renderDayEventList(dateKey) {
+      const events = await loadEventsForDay(dateKey);
+      const list   = document.getElementById('day-event-list');
+      list.innerHTML = '';
+
+      if (events.length === 0) {
+        list.innerHTML = '<p class="no-events">등록된 일정이 없어요</p>';
+        return;
+      }
+
+      events.forEach(ev => {
+        const item = document.createElement('div');
+        item.className = 'ev-item';
+        const timeStr = ev.time || '종일';
+        item.innerHTML = `
+          <div class="ev-item-main" onclick="toggleEvDetail('${ev.id}')">
+            <span class="ev-time-badge">${escapeHtml(timeStr)}</span>
+            <span>${escapeHtml(ev.title)}</span>
+          </div>
+          <div class="ev-item-detail" id="ev-detail-${ev.id}" style="display:none">
+            <p class="ev-memo-text">${ev.memo ? escapeHtml(ev.memo) : ''}</p>
+            <div class="ev-item-actions">
+              <button onclick="showEventForm('${escapeHtml(ev.date)}','${ev.id}')">수정</button>
+              <button onclick="confirmDeleteEvent('${ev.id}')">삭제</button>
+            </div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function toggleEvDetail(evId) {
+      const el = document.getElementById('ev-detail-' + evId);
+      if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+    }
+
+    function showEventList() {
+      document.getElementById('day-modal-list').style.display = '';
+      document.getElementById('day-modal-form').style.display = 'none';
+    }
+
+    async function showEventForm(dateKey, eventId) {
+      editingEventId = eventId || null;
+      document.getElementById('day-modal-list').style.display = 'none';
+      document.getElementById('day-modal-form').style.display = '';
+
+      document.getElementById('ev-title').value = '';
+      document.getElementById('ev-time').value  = '';
+      document.getElementById('ev-memo').value  = '';
+
+      if (eventId) {
+        const ev = await loadEventById(eventId);
+        if (ev) {
+          document.getElementById('ev-title').value = ev.title;
+          document.getElementById('ev-time').value  = ev.time  || '';
+          document.getElementById('ev-memo').value  = ev.memo  || '';
+        }
+      }
+      updateSaveBtn();
+    }
+
+    function updateSaveBtn() {
+      const title = document.getElementById('ev-title').value.trim();
+      document.getElementById('ev-save-btn').disabled = !title;
+    }
+
+    async function saveEventForm() {
+      const title = document.getElementById('ev-title').value.trim();
+      if (!title) return;
+      const time = document.getElementById('ev-time').value  || null;
+      const memo = document.getElementById('ev-memo').value.trim() || null;
+
+      if (editingEventId) {
+        await updateEvent(editingEventId, { title, time, memo });
+      } else {
+        await saveEvent({ date: currentModalDate, title, time, memo });
+      }
+
+      showEventList();
+      await renderDayEventList(currentModalDate);
+      await renderCalendar();
+    }
+
+    async function confirmDeleteEvent(eventId) {
+      if (!confirm('이 일정을 삭제할까요?')) return;
+      await deleteEvent(eventId);
+      await renderDayEventList(currentModalDate);
       await renderCalendar();
     }
 
