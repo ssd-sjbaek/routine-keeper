@@ -1106,7 +1106,7 @@
       } else {
         const current = doc.data().shift;
         const idx = order.indexOf(current);
-        if (idx === order.length - 1) {
+        if (idx < 0 || idx === order.length - 1) {
           await ref.delete();
         } else {
           await ref.update({ shift: order[idx + 1] });
