@@ -5,15 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>루틴 지킴이</title>
   <style>
+    :root {
+      --color-bg:     #b2e0f7;
+      --color-border: #88ccee;
+      --color-accent: #4488bb;
+      --color-card:   #ffffff;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #f0f7f4;
-      color: #2d3a35;
+      font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, sans-serif;
+      background: #f0f8ff;
+      color: #334455;
       min-height: 100vh;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
     }
+
+    .bokeh-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bokeh-bg span {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(50px);
+      opacity: 0.55;
+    }
+    .bokeh-bg .b1 { width: 240px; height: 240px; background: var(--color-bg); top: -60px; left: -70px; }
+    .bokeh-bg .b2 { width: 180px; height: 180px; background: var(--color-bg); top: 100px; right: -50px; opacity: 0.4; }
+    .bokeh-bg .b3 { width: 280px; height: 280px; background: var(--color-bg); bottom: 40px; left: -80px; opacity: 0.35; }
+    .bokeh-bg .b4 { width: 160px; height: 160px; background: var(--color-bg); bottom: -40px; right: 10px; opacity: 0.45; }
+    .bokeh-bg .b5 { width: 140px; height: 140px; background: var(--color-bg); top: 45%; left: 35%; opacity: 0.3; }
 
     /* 로그인 화면 */
     #screen-login {
@@ -423,6 +450,15 @@
 </head>
 <body>
 
+  <!-- 보케 배경 -->
+  <div class="bokeh-bg">
+    <span class="b1"></span>
+    <span class="b2"></span>
+    <span class="b3"></span>
+    <span class="b4"></span>
+    <span class="b5"></span>
+  </div>
+
   <!-- 로그인 화면 -->
   <div id="screen-login" style="display:none">
     <div class="login-card">
@@ -494,7 +530,39 @@
       measurementId: "G-73SYTBTKM0"
     };
 
+    // ── 테마 (색상 커스터마이징) ──────────────────────────
+    const DEFAULT_THEME = {
+      bg:     '#b2e0f7',
+      border: '#88ccee',
+      accent: '#4488bb',
+      card:   '#ffffff',
+    };
+
+    function applyTheme(theme) {
+      const t = theme || DEFAULT_THEME;
+      const root = document.documentElement.style;
+      root.setProperty('--color-bg',     t.bg);
+      root.setProperty('--color-border', t.border);
+      root.setProperty('--color-accent', t.accent);
+      root.setProperty('--color-card',   t.card);
+    }
+
+    function saveTheme(theme) {
+      localStorage.setItem('cy_theme', JSON.stringify(theme));
+      applyTheme(theme);
+    }
+
+    function loadTheme() {
+      try {
+        const stored = localStorage.getItem('cy_theme');
+        return stored ? JSON.parse(stored) : DEFAULT_THEME;
+      } catch {
+        return DEFAULT_THEME;
+      }
+    }
+
     firebase.initializeApp(firebaseConfig);
+    applyTheme(loadTheme());
     const auth = firebase.auth();
     const db   = firebase.firestore();
 
