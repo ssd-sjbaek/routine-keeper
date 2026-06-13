@@ -1204,10 +1204,14 @@
     let cachedProfile = null;
 
     async function loadUserProfile() {
-      const doc = await db.collection('users').doc(currentUser.uid).get();
-      cachedProfile = doc.exists
-        ? { appName: doc.data().appName || '', nickname: doc.data().nickname || '' }
-        : { appName: '', nickname: '' };
+      try {
+        const doc = await db.collection('users').doc(currentUser.uid).get();
+        cachedProfile = doc.exists
+          ? { appName: doc.data().appName || '', nickname: doc.data().nickname || '' }
+          : { appName: '', nickname: '' };
+      } catch {
+        cachedProfile = { appName: '', nickname: '' };
+      }
       return cachedProfile;
     }
 
@@ -2097,6 +2101,7 @@
       } else {
         routineEditMode = false;
         todoAddMode = false;
+        cachedProfile = null;
         showScreen('login');
       }
     });
