@@ -1001,6 +1001,53 @@
       }
     }
 
+    // ── 이벤트 Firestore 함수 ─────────────────────────
+    async function loadEventsForMonth(year, month) {
+      const pad = n => String(n).padStart(2, '0');
+      const start = `${year}-${pad(month)}-01`;
+      const end   = `${year}-${pad(month)}-31`;
+      const snap = await db.collection('users').doc(currentUser.uid)
+        .collection('events')
+        .where('date', '>=', start)
+        .where('date', '<=', end)
+        .get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+
+    async function loadEventsForDay(dateKey) {
+      const snap = await db.collection('users').doc(currentUser.uid)
+        .collection('events')
+        .where('date', '==', dateKey)
+        .get();
+      const events = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      events.sort((a, b) => (a.time || '99:99').localeCompare(b.time || '99:99'));
+      return events;
+    }
+
+    async function loadEventById(eventId) {
+      const doc = await db.collection('users').doc(currentUser.uid)
+        .collection('events').doc(eventId).get();
+      return doc.exists ? { id: doc.id, ...doc.data() } : null;
+    }
+
+    async function saveEvent(data) {
+      await db.collection('users').doc(currentUser.uid)
+        .collection('events').add({
+          ...data,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+
+    async function updateEvent(eventId, data) {
+      await db.collection('users').doc(currentUser.uid)
+        .collection('events').doc(eventId).set(data, { merge: true });
+    }
+
+    async function deleteEvent(eventId) {
+      await db.collection('users').doc(currentUser.uid)
+        .collection('events').doc(eventId).delete();
+    }
+
     // ── Firestore 데이터 함수 ─────────────────────────
     async function saveRoutineCheck(dateKey, routineName, checked) {
       await db.collection('users').doc(currentUser.uid)
@@ -1525,7 +1572,7 @@
         if (el) el.classList.remove('active');
       });
       if (name === 'main')     { const el = document.getElementById('nav-home');     if (el) el.classList.add('active'); }
-      if (name === 'schedule') { const el = document.getElementById('nav-schedule'); if (el) el.classList.add('active'); }
+      if (name === 'schedule') { const el = document.getElementById('nav-schedule'); if (el) el.classList.add('active'); renderCalendar(); }
       if (name === 'settings') { const el = document.getElementById('nav-settings'); if (el) el.classList.add('active'); }
       if (name === 'settings') renderSettings();
       if (name === 'main') {
@@ -1585,6 +1632,77 @@
       if (/^#[0-9a-fA-F]{6}$/.test(val)) {
         document.querySelectorAll(`.swatch[data-key="${key}"]`).forEach(s => s.classList.remove('active'));
       }
+    }
+
+    // ── 달력 화면 ─────────────────────────────────────
+    async function renderCalendar() {
+      const year  = calViewYear;
+      const month = calViewMonth;
+
+      document.getElementById('schedule-month').textContent = `${year}년 ${month}월`;
+
+      const events = await loadEventsForMonth(year, month);
+      const byDate = {};
+      events.forEach(ev => {
+        if (!byDate[ev.date]) byDate[ev.date] = [];
+        byDate[ev.date].push(ev);
+      });
+
+      const firstWeekday = new Date(year, month - 1, 1).getDay();
+      const daysInMonth  = new Date(year, month, 0).getDate();
+      const todayKey     = getTodayKey();
+
+      const cal = document.getElementById('calendar');
+      cal.innerHTML = '';
+
+      ['일','월','화','수','목','금','토'].forEach(w => {
+        const h = document.createElement('div');
+        h.className = 'cal-dow';
+        h.textContent = w;
+        cal.appendChild(h);
+      });
+
+      for (let i = 0; i < firstWeekday; i++) {
+        cal.appendChild(document.createElement('div'));
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const m   = String(month).padStart(2, '0');
+        const d   = String(day).padStart(2, '0');
+        const dateKey  = `${year}-${m}-${d}`;
+        const dayEvs   = byDate[dateKey] || [];
+
+        const cell = document.createElement('div');
+        cell.className = 'cal-day' + (dateKey === todayKey ? ' today' : '');
+
+        const numSpan = document.createElement('span');
+        numSpan.className = 'day-num';
+        numSpan.textContent = day;
+        cell.appendChild(numSpan);
+
+        if (dayEvs.length > 0) {
+          const chip = document.createElement('span');
+          chip.className = 'event-chip';
+          chip.textContent = dayEvs[0].title;
+          cell.appendChild(chip);
+          if (dayEvs.length > 1) {
+            const more = document.createElement('span');
+            more.className = 'event-more';
+            more.textContent = `+${dayEvs.length - 1}`;
+            cell.appendChild(more);
+          }
+        }
+
+        cell.onclick = () => openDayModal(dateKey);
+        cal.appendChild(cell);
+      }
+    }
+
+    function calNavMonth(delta) {
+      calViewMonth += delta;
+      if (calViewMonth > 12) { calViewYear++;  calViewMonth = 1; }
+      if (calViewMonth < 1)  { calViewYear--;  calViewMonth = 12; }
+      renderCalendar();
     }
 
     // ── 탭 전환 ───────────────────────────────────────
