@@ -1882,6 +1882,7 @@
           cal.appendChild(document.createElement('div'));
         }
 
+        const VALID_SHIFTS = new Set(['A', 'C', 'D']);
         for (let day = 1; day <= daysInMonth; day++) {
           const m   = String(month).padStart(2, '0');
           const d   = String(day).padStart(2, '0');
@@ -1912,7 +1913,6 @@
           numSpan.style.cursor = 'pointer';
           numSpan.onclick = (e) => { e.stopPropagation(); openDayModal(dateKey); };
 
-          const VALID_SHIFTS = new Set(['A', 'C', 'D']);
           const shiftVal = VALID_SHIFTS.has(shifts[dateKey]) ? shifts[dateKey] : null;
           const shiftEl = document.createElement('span');
           if (shiftVal) {
