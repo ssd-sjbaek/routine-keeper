@@ -478,39 +478,70 @@
 
   <!-- 메인 화면 -->
   <div id="screen-main" style="display:none">
-    <div class="header">
-      <span id="today-date">날짜 로딩 중...</span>
-      <div class="header-actions">
-        <button onclick="showScreen('schedule')">📅 스케줄 설정</button>
-        <button onclick="handleSignOut()">로그아웃</button>
-      </div>
-    </div>
     <div class="card">
+      <!-- 싸이월드 헤더 -->
+      <div class="mh-header">
+        <div class="mh-avatar">🌸</div>
+        <div class="mh-info">
+          <div class="mh-title">루틴 지킴이</div>
+          <div class="mh-sub" id="user-display-name">로딩 중...</div>
+        </div>
+        <div class="mh-streak" id="streak-header-badge" style="display:none"></div>
+      </div>
+      <!-- 탭바 -->
       <div class="tab-bar">
         <button class="tab-btn active" id="tab-today" onclick="switchTab('today')">오늘</button>
         <button class="tab-btn" id="tab-stats" onclick="switchTab('stats')">📊 통계</button>
       </div>
+      <!-- 오늘 패널 -->
       <div id="panel-today">
-        <div class="shift-row">
-          <h1>오늘</h1>
-          <span id="shift-badge" class="badge badge-none">미설정</span>
-        </div>
-        <div id="timing-hint" class="hint">오늘 스케줄을 먼저 설정해줘요</div>
-        <div id="routine-section" class="routine-list"></div>
+        <div class="date-hint-bar" id="date-hint-bar">로딩 중...</div>
+        <div id="timing-hint" class="hint" style="display:none"></div>
+        <div id="routine-section"></div>
         <div id="todo-section" class="todo-section"></div>
       </div>
+      <!-- 통계 패널 -->
       <div id="panel-stats" style="display:none"></div>
+      <!-- 하단 네비 -->
+      <div class="bottom-nav">
+        <div class="nav-item active" id="nav-home" onclick="showScreen('main')">
+          <span class="nav-icon">🏠</span><span>홈</span>
+        </div>
+        <div class="nav-item" id="nav-schedule" onclick="showScreen('schedule')">
+          <span class="nav-icon">📅</span><span>스케줄</span>
+        </div>
+        <div class="nav-item" id="nav-settings" onclick="showScreen('settings')">
+          <span class="nav-icon">⚙️</span><span>설정</span>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- 스케줄 설정 화면 -->
   <div id="screen-schedule" style="display:none">
-    <div class="header">
-      <button onclick="showScreen('main')">← 뒤로</button>
+    <div class="sub-screen-header">
+      <button class="back-btn" onclick="showScreen('main')">← 뒤로</button>
       <span id="schedule-month"></span>
     </div>
     <p class="cal-guide">날짜를 클릭하면 A조 → C조 → DO → 비움 순으로 바뀌어요</p>
     <div id="calendar" class="calendar"></div>
+  </div>
+
+  <!-- 설정 화면 -->
+  <div id="screen-settings" style="display:none">
+    <div class="sub-screen-header">
+      <button class="back-btn" onclick="showScreen('main')">← 뒤로</button>
+      <span>⚙️ 설정</span>
+    </div>
+    <div class="settings-card">
+      <div class="settings-section-title">🎨 색상 꾸미기</div>
+      <div id="color-pickers"></div>
+      <button class="save-theme-btn" onclick="onSaveTheme()">저장하기 ✓</button>
+    </div>
+    <div class="settings-card" style="margin-top:12px">
+      <div class="settings-section-title">계정</div>
+      <button class="logout-btn" onclick="handleSignOut()">로그아웃</button>
+    </div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -847,17 +878,16 @@
         loadTodoList(),
       ]);
 
-      document.getElementById('today-date').textContent = getTodayLabel();
+      const shiftText = shift ? ` · ${SHIFT_LABELS[shift]}` : '';
+      document.getElementById('date-hint-bar').textContent = getTodayLabel() + shiftText;
 
-      const badge = document.getElementById('shift-badge');
-      if (shift) {
-        badge.textContent = SHIFT_LABELS[shift];
-        badge.className = `badge badge-${shift.toLowerCase()}`;
-      } else {
-        badge.textContent = '미설정';
-        badge.className = 'badge badge-none';
+      const timingHintEl = document.getElementById('timing-hint');
+      timingHintEl.textContent = getTimingHint(shift);
+      timingHintEl.style.display = '';
+
+      if (currentUser && currentUser.displayName) {
+        document.getElementById('user-display-name').textContent = currentUser.displayName + '의 홈';
       }
-      document.getElementById('timing-hint').textContent = getTimingHint(shift);
 
       // ── 루틴 섹션 ──
       const routineSection = document.getElementById('routine-section');
@@ -1188,11 +1218,24 @@
       document.getElementById('screen-login').style.display    = name === 'login'    ? '' : 'none';
       document.getElementById('screen-main').style.display     = name === 'main'     ? '' : 'none';
       document.getElementById('screen-schedule').style.display = name === 'schedule' ? '' : 'none';
+      document.getElementById('screen-settings').style.display = name === 'settings' ? '' : 'none';
+      ['home','schedule','settings'].forEach(id => {
+        const el = document.getElementById('nav-' + id);
+        if (el) el.classList.remove('active');
+      });
+      if (name === 'main')     { const el = document.getElementById('nav-home');     if (el) el.classList.add('active'); }
+      if (name === 'schedule') { const el = document.getElementById('nav-schedule'); if (el) el.classList.add('active'); }
+      if (name === 'settings') { const el = document.getElementById('nav-settings'); if (el) el.classList.add('active'); }
       if (name === 'schedule') renderCalendar();
+      if (name === 'settings') renderSettings();
       if (name === 'main') {
         if (currentTab !== 'today') switchTab('today');
         renderMain();
       }
+    }
+
+    function renderSettings() {
+      // completed in Task 4
     }
 
     // ── 달력 화면 ─────────────────────────────────────
