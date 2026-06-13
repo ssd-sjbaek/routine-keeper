@@ -509,6 +509,232 @@
       cursor: pointer; font-family: inherit;
     }
     .full-reset-btn:hover { color: #e57373; }
+
+    /* ── 새 캘린더 ── */
+    .cal-month-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--color-accent);
+    }
+    .cal-nav-btn {
+      background: none;
+      border: none;
+      font-size: 16px;
+      color: var(--color-accent);
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: background 0.1s;
+    }
+    .cal-nav-btn:hover { background: color-mix(in srgb, var(--color-bg) 40%, white); }
+
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      max-width: 480px;
+      margin: 8px auto 0;
+      position: relative;
+      z-index: 1;
+      padding: 0 4px;
+    }
+    .cal-dow {
+      text-align: center;
+      font-size: 11px;
+      color: #99bbcc;
+      padding: 4px 0;
+      font-weight: 600;
+    }
+    .cal-day {
+      background: var(--color-card);
+      border: 1px solid color-mix(in srgb, var(--color-border) 40%, white);
+      border-radius: 8px;
+      padding: 4px 3px 5px;
+      text-align: center;
+      cursor: pointer;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      box-shadow: 0 1px 3px rgba(100,160,220,0.07);
+      transition: background 0.1s;
+      overflow: hidden;
+    }
+    .cal-day:hover { background: color-mix(in srgb, var(--color-bg) 25%, white); }
+    .cal-day.today .day-num {
+      background: var(--color-accent);
+      color: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .day-num {
+      font-size: 12px;
+      font-weight: 600;
+      color: #334455;
+      line-height: 1;
+    }
+    .event-chip {
+      font-size: 9px;
+      background: color-mix(in srgb, var(--color-accent) 15%, white);
+      color: var(--color-accent);
+      border-radius: 3px;
+      padding: 1px 3px;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      line-height: 1.3;
+    }
+    .event-more {
+      font-size: 8px;
+      color: #99bbcc;
+    }
+
+    /* ── 일정 모달 ── */
+    .day-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .day-modal {
+      background: var(--color-card);
+      border: 2px solid var(--color-border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 360px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    }
+    .day-modal-header {
+      background: linear-gradient(135deg,
+        color-mix(in srgb, var(--color-bg) 80%, white),
+        color-mix(in srgb, var(--color-bg) 60%, white)
+      );
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: bold;
+      color: var(--color-accent);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .day-modal-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      color: #99bbcc;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 2px;
+    }
+    #day-event-list { padding: 8px 12px 0; min-height: 40px; }
+    .no-events {
+      text-align: center;
+      color: #aabbcc;
+      font-size: 12px;
+      padding: 16px 0 8px;
+    }
+    .ev-item {
+      border-bottom: 1px solid color-mix(in srgb, var(--color-border) 30%, white);
+      padding: 6px 0;
+    }
+    .ev-item:last-child { border-bottom: none; }
+    .ev-item-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #334455;
+    }
+    .ev-time-badge {
+      background: color-mix(in srgb, var(--color-accent) 12%, white);
+      color: var(--color-accent);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    .ev-item-detail {
+      padding: 6px 0 4px 32px;
+      font-size: 12px;
+      color: #667788;
+    }
+    .ev-memo-text { margin-bottom: 6px; white-space: pre-wrap; }
+    .ev-item-actions { display: flex; gap: 8px; }
+    .ev-item-actions button {
+      background: none;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--color-accent);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .day-add-btn {
+      display: block;
+      width: calc(100% - 24px);
+      margin: 10px 12px 12px;
+      padding: 9px;
+      background: var(--color-accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ev-form-inner { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .ev-input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1.5px solid var(--color-border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      background: color-mix(in srgb, var(--color-card) 90%, var(--color-bg));
+      color: #334455;
+      outline: none;
+    }
+    .ev-input:focus { border-color: var(--color-accent); }
+    .ev-memo { resize: vertical; min-height: 64px; }
+    .ev-form-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .ev-cancel-btn {
+      padding: 7px 16px;
+      border: 1.5px solid var(--color-border);
+      border-radius: 8px;
+      background: none;
+      color: #667788;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ev-save-btn {
+      padding: 7px 16px;
+      border: none;
+      border-radius: 8px;
+      background: var(--color-accent);
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .ev-save-btn:disabled { background: #ccd8e4; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -719,6 +945,19 @@
     let currentTab = 'today';
     let statsYear  = new Date().getFullYear();
     let statsMonth = new Date().getMonth() + 1;
+    let calViewYear  = new Date().getFullYear();
+    let calViewMonth = new Date().getMonth() + 1;
+    let currentModalDate = null;
+    let editingEventId   = null;
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     // ── 날짜 유틸 ─────────────────────────────────────
     function getTodayKey() {
